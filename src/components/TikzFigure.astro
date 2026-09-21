@@ -1,0 +1,90 @@
+---
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+
+interface Props {
+  source: string;
+  alt: string;
+}
+
+const { source, alt } = Astro.props;
+const texSource = [
+  '\\documentclass[tikz,border=3pt]{standalone}',
+  '\\usepackage{tikz}',
+  '\\usetikzlibrary{arrows.meta,backgrounds,calc,fit,positioning}',
+  '\\begin{document}',
+  source,
+  '\\end{document}',
+  '',
+].join('\n');
+const hash = createHash('sha256').update(texSource).digest('hex').slice(0, 16);
+const cacheDir = path.join(process.cwd(), '.astro', 'tikz', hash);
+const texPath = path.join(cacheDir, 'figure.tex');
+const pdfPath = path.join(cacheDir, 'figure.pdf');
+const svgPath = path.join(cacheDir, 'figure.svg');
+
+function compileTikz() {
+  if (existsSync(svgPath)) return;
+
+  mkdirSync(cacheDir, { recursive: true });
+  writeFileSync(texPath, texSource, 'utf8');
+
+  try {
+    execFileSync('pdflatex', [
+      '-interaction=nonstopmode',
+      '-halt-on-error',
+      '-output-directory',
+      cacheDir,
+      texPath,
+    ], { stdio: 'pipe' });
+    execFileSync('pdftocairo', ['-svg', pdfPath, svgPath], { stdio: 'pipe' });
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      'Unable to compile TikZ figure. Ensure pdflatex and pdftocairo are installed. ' + detail,
+    );
+  }
+}
+
+compileTikz();
+const svg = readFileSync(svgPath, 'utf8')
+  .replace(/^<\?xml[^>]*>\s*/i, '')
+  .replace(/^<!DOCTYPE[^>]*>\s*/i, '')
+  // pdftocairo bakes pure black borders/arrows as a literal stroke="rgb(0%,0%,0%)";
+  // swap only the stroke (not fill, which is text glyphs) for currentColor so the
+  // theme's --ink drives boundaries, keeping them visible against a dark background
+  // instead of black-on-near-black. Text stays black regardless of theme.
+  .replace(/stroke="rgb\(\s*0%\s*,\s*0%\s*,\s*0%\s*\)"/gi, 'stroke="currentColor"')
+  // the +/x operator glyphs are tagged `text=opsym` (a near-black RGB(1,1,1) fingerprint,
+  // defined in the .tikz source) so they can be picked out from ordinary black text and
+  // made theme-aware too, tracking the same --ink as the boundaries above.
+  .replace(/fill="rgb\(\s*0\.390625%\s*,\s*0\.390625%\s*,\s*0\.390625%\s*\)"/gi, 'fill="currentColor"')
+  // pdftocairo numbers its <clipPath> and glyph <symbol> ids from zero in every
+  // file (clip-0, glyph-0-1, ...). With two TikZ figures on one page the browser
+  // resolves url(#clip-0) to whichever figure came first, clipping the second
+  // figure to the first one's regions and swapping its glyphs. Prefix every id
+  // and every reference to it with this figure's content hash so they're unique.
+  .replace(/\bid="([^"]+)"/g, `id="tikz-${hash}-$1"`)
+  .replace(/url\(#([^)]+)\)/g, `url(#tikz-${hash}-$1)`)
+  .replace(/\b(xlink:)?href="#([^"]+)"/g, `$1href="#tikz-${hash}-$2"`);
+---
+
+<div class="tikz-figure" role="img" aria-label={alt} set:html={svg}></div>
+
+<style>
+  .tikz-figure {
+    display: flex;
+    justify-content: center;
+    margin: 30px 0;
+  }
+
+  .tikz-figure :global(svg) {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    color: var(--ink);
+  }
+</style>

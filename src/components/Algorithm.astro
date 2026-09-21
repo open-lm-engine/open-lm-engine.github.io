@@ -1,0 +1,18 @@
+---
+import { parseAlgorithmic } from '../plugins/algorithmic-latex.mjs';
+
+interface Props {
+  number: number;
+  source: string;
+}
+
+const { number, source } = Astro.props;
+const { captionHtml, bodyHtml } = parseAlgorithmic(source);
+---
+
+<!-- Laid out like LaTeX's `algorithm` float: a thick rule, the caption with a
+     bold "Algorithm N" label, a thin rule, the algorithmic body, a thick rule. -->
+<div class="algorithm">
+  <div class="algorithm-caption"><span class="algorithm-label">Algorithm {number}</span> <Fragment set:html={captionHtml} /></div>
+  <div class="algorithm-body" set:html={bodyHtml} />
+</div>

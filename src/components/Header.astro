@@ -1,0 +1,25 @@
+---
+import { site } from '../site.config';
+import SkyControls from './SkyControls.astro';
+
+interface Props {
+  // true only on a page that has the starfield; adds the stars + quality
+  // toggles next to the theme toggle so the reader can turn the sky on
+  // from anywhere on the page
+  showStars?: boolean;
+}
+const { showStars = false } = Astro.props;
+---
+
+<header class="site-header" aria-label="Site header">
+  <a class="site-brand" href="/" aria-label={`${site.brand} home`}>
+    <span class="brand-name">{site.brand}</span>
+    <span class="brand-tagline">{site.tagline}</span>
+  </a>
+  <div class="site-header-right">
+    <nav class="site-nav" aria-label="Primary navigation">
+      {site.nav.map((item) => <a href={item.href}>{item.label}</a>)}
+    </nav>
+    <SkyControls showStars={showStars} />
+  </div>
+</header>

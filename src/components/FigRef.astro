@@ -1,0 +1,27 @@
+---
+// Inline cross-reference to a <Figure id="..."> elsewhere on the page. Renders
+// a placeholder link; a page-level script (in PostLayout.astro) computes every
+// figure's number by walking the DOM in document order and resolves this to
+// the real number on load, so the text can never drift out of sync with a
+// reordered figure.
+interface Props {
+  id: string;
+  // set when the target is one figure inside a lettered figure-row (e.g. "4a")
+  // but this reference means the group as a whole ("Fig 4") — the resolver
+  // strips the trailing letter.
+  group?: boolean;
+  // spell out "Figure" instead of the default abbreviated "Fig".
+  full?: boolean;
+}
+
+const { id, group = false, full = false } = Astro.props;
+const word = full ? 'Figure' : 'Fig';
+---
+
+<a
+  class="fig-ref"
+  href={`#${id}`}
+  data-fig-ref={id}
+  data-fig-ref-group={group ? '1' : undefined}
+  data-fig-ref-full={full ? '1' : undefined}
+>{word} ?</a>

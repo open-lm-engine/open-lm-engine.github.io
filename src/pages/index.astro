@@ -1,0 +1,31 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { site } from '../site.config';
+
+const posts = await getCollection('blog', ({ data }) => !data.draft);
+---
+
+<BaseLayout title={site.brand} description={site.tagline}>
+  <div class="home-shell">
+    <section class="home-hero">
+      <h1>{site.brand}</h1>
+      <p>{site.tagline}</p>
+    </section>
+
+    {posts.length === 0 ? (
+      <p class="empty-state">No posts yet.</p>
+    ) : (
+      <ul class="post-list">
+        {posts.map((post) => (
+          <li>
+            <a href={`/blog/${post.id}/`}>
+              <h2>{post.data.title}</h2>
+              <p class="post-desc">{post.data.description}</p>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</BaseLayout>

@@ -1,0 +1,80 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { site } from '../site.config';
+import '../styles/global.css';
+import 'katex/dist/katex.min.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  // social-preview (Open Graph / Twitter) fields: a title without the site
+  // suffix, an absolute image URL, and the page type
+  ogTitle?: string;
+  image?: string;
+  imageCard?: 'summary' | 'summary_large_image';
+  type?: 'website' | 'article';
+  // the starfield (canvas + its controls) only ever renders on posts that opt in
+  sky?: boolean;
+}
+
+const { title, description, ogTitle, image, imageCard = 'summary', type = 'website', sky = false } = Astro.props;
+const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    {canonical && <link rel="canonical" href={canonical} />}
+    <meta property="og:type" content={type} />
+    <meta property="og:site_name" content={site.brand} />
+    <meta property="og:title" content={ogTitle ?? title} />
+    {description && <meta property="og:description" content={description} />}
+    {canonical && <meta property="og:url" content={canonical} />}
+    {image && <meta property="og:image" content={image} />}
+    <meta name="twitter:card" content={image ? imageCard : 'summary'} />
+    <meta name="twitter:title" content={ogTitle ?? title} />
+    {description && <meta name="twitter:description" content={description} />}
+    {image && <meta name="twitter:image" content={image} />}
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <script define:vars={{ sky }}>
+      (function () {
+        // dark by default everywhere, unless the visitor explicitly picked light
+        var stored = localStorage.getItem('theme');
+        document.documentElement.setAttribute('data-theme', stored === 'light' ? 'light' : 'dark');
+        if (sky) {
+          // stars on by default, unless the visitor explicitly turned them off
+          if (localStorage.getItem('sky') !== 'off') {
+            document.documentElement.setAttribute('data-sky', 'on');
+          }
+          if (localStorage.getItem('sky-quality') === 'high') {
+            document.documentElement.setAttribute('data-sky-quality', 'high');
+          }
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- dark-mode sky (posts with sky: true only): stars, the blue star and its
+         planets, a ringed giant, comets. Drawn by src/scripts/sky.ts; the CSS
+         far-star layers sit behind it. -->
+    {sky && <canvas class="sky-canvas" aria-hidden="true"></canvas>}
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Header showStars={sky} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+    {sky && (
+      <script>
+        import '../scripts/sky.ts';
+      </script>
+    )}
+  </body>
+</html>

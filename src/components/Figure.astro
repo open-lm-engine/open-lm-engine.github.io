@@ -1,0 +1,18 @@
+---
+interface Props {
+  id?: string;
+  wide?: boolean;
+}
+
+const { id, wide = false } = Astro.props;
+const hasCaption = Astro.slots.has('caption');
+---
+
+<figure id={id} class:list={['figure', { 'figure-wide': wide }]}>
+  <slot />
+  {hasCaption && (
+    <figcaption>
+      <slot name="caption" />
+    </figcaption>
+  )}
+</figure>

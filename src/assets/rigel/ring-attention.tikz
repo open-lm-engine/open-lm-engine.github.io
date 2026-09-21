@@ -1,0 +1,119 @@
+% Ring attention load balancing across N_CP = 4 ranks, 8 sequence chunks.
+%   left:   full causal attention, naive contiguous chunking  (unbalanced)
+%   middle: full causal attention, zigzag chunking            (balanced)
+%   right:  sliding window attention, contiguous chunking     (balanced)
+%
+% `opsym` is a near-black fingerprint colour that TikzFigure.astro rewrites to
+% currentColor, so free-standing text follows the site theme (light/dark).
+\definecolor{opsym}{RGB}{1,1,1}
+\definecolor{rank0}{HTML}{4E79A7}
+\definecolor{rank1}{HTML}{F28E2B}
+\definecolor{rank2}{HTML}{59A14F}
+\definecolor{rank3}{HTML}{E15759}
+\definecolor{badink}{HTML}{B1342F}
+\definecolor{goodink}{HTML}{2F7D32}
+\definecolor{gridline}{HTML}{BDBDBD}
+\definecolor{legendgray}{HTML}{888888}
+
+% Full causal mask, chunk \i owned by rank #1 (pgfmath expression in \i):
+% full blocks for j < i plus a lower-left triangle on the diagonal j = i.
+\newcommand{\causalmask}[1]{%
+  \foreach \i in {0,...,7} {
+    \pgfmathtruncatemacro{\r}{#1}
+    \ifnum\i>0
+      \fill[rank\r] (0, -\i*\cs) rectangle (\i*\cs, -\i*\cs-\cs);
+    \fi
+    \fill[rank\r] (\i*\cs, -\i*\cs) -- (\i*\cs, -\i*\cs-\cs) -- (\i*\cs+\cs, -\i*\cs-\cs) -- cycle;
+  }
+}
+
+% Causal sliding-window mask (window = 1.625 chunks), contiguous chunking:
+% one parallelogram band per query chunk, clipped to the grid.
+\newcommand{\swamask}{%
+  \begin{scope}
+    \clip (0,0) rectangle (8*\cs, -8*\cs);
+    \foreach \i in {0,...,7} {
+      \pgfmathtruncatemacro{\r}{int(\i/2)}
+      \fill[rank\r] (\i*\cs-1.625*\cs, -\i*\cs) -- (\i*\cs, -\i*\cs)
+                 -- (\i*\cs+\cs, -\i*\cs-\cs) -- (\i*\cs-0.625*\cs, -\i*\cs-\cs) -- cycle;
+    }
+  \end{scope}
+}
+
+% One panel: #1 = title, #2 = mask-drawing code, #3 = per-rank loads,
+%            #4 = verdict text, #5 = verdict colour, #6 = extra bar-chart code
+\newcommand{\cppanel}[6]{%
+  \node[ptitle] at (4*\cs, 5.4mm) {#1};
+  #2
+  % grid + frame
+  \foreach \k in {0,...,8} {
+    \draw[gridline, line width=0.3pt] (\k*\cs, 0) -- (\k*\cs, -8*\cs);
+    \draw[gridline, line width=0.3pt] (0, -\k*\cs) -- (8*\cs, -\k*\cs);
+  }
+  \draw[black, line width=0.5pt] (0,0) rectangle (8*\cs, -8*\cs);
+  % chunk indices along the top, axis labels
+  \foreach \k in {0,...,7} {
+    \node[idx] at (\k*\cs+0.5*\cs, 1.6mm) {\k};
+  }
+  \node[axis] at (4*\cs, -8*\cs-3.6mm) {key-value chunk $\rightarrow$};
+  \node[axis, rotate=90] at (-4mm, -4*\cs) {$\leftarrow$ query chunk};
+  % per-rank load bars (same scale in every panel: 15 units = 20mm)
+  #6
+  \foreach \load [count=\k from 0] in {#3} {
+    \pgfmathsetmacro{\bx}{8.5 + \k*13}      % bar centre, mm
+    \pgfmathsetmacro{\bh}{\load/15*20}      % bar height, mm
+    \fill[rank\k] (\bx mm-3.5mm, \bl) rectangle (\bx mm+3.5mm, \bl+\bh mm);
+    \node[barval] at (\bx mm, \bl+\bh mm+2.2mm) {\load};
+    \node[barlab] at (\bx mm, \bl-2.8mm) {GPU\k};
+  }
+  \draw[black, line width=0.5pt] (2mm, \bl) -- (54mm, \bl);
+  \node[verdict, text=#5] at (4*\cs, \bl-7.5mm) {#4};
+}
+
+\begin{tikzpicture}[
+    font=\small,
+    ptitle/.style={font=\footnotesize\bfseries, text=opsym, inner sep=0pt},
+    idx/.style={font=\scriptsize, text=gray, inner sep=0pt},
+    axis/.style={font=\footnotesize, text=opsym, inner sep=0pt},
+    barval/.style={font=\footnotesize\bfseries, text=opsym, inner sep=0pt},
+    barlab/.style={font=\scriptsize, text=opsym, inner sep=0pt},
+    verdict/.style={font=\small\bfseries, inner sep=0pt},
+    leg/.style={font=\footnotesize, text=opsym, inner sep=0pt, anchor=west}
+]
+\def\cs{7mm}          % grid cell size
+\def\bl{-88mm}        % bar-chart baseline (y)
+\def\pitch{78mm}      % horizontal distance between panels
+
+%====================== LEFT: full causal, contiguous ========================
+\begin{scope}
+  \cppanel{full causal, contiguous}{\causalmask{int(\i/2)}}{3,7,11,15}{unbalanced work}{badink}{}
+\end{scope}
+
+%====================== MIDDLE: full causal, zigzag ==========================
+\begin{scope}[xshift=\pitch]
+  \cppanel{full causal, zigzag}{\causalmask{\i<4 ? \i : 7-\i}}{9,9,9,9}{balanced work}{goodink}{}
+\end{scope}
+
+%====================== RIGHT: sliding window, contiguous ====================
+\begin{scope}[xshift=2*\pitch]
+  \cppanel{sliding window, contiguous}{\swamask}{3,6,6,6}{balanced work}{goodink}{%
+    % window-capped load: every rank past the first saturates at the same value
+    \draw[gridline, line width=0.3pt, dash pattern=on 1.2mm off 0.9mm] (2mm, \bl+8mm) -- (54mm, \bl+8mm);
+  }
+\end{scope}
+
+%====================== shared legend ========================================
+\pgfmathsetmacro{\legw}{2*78+56}
+\draw[gridline!60, line width=0.3pt] (-6mm, -103mm) -- (\legw mm+6mm, -103mm);
+\begin{scope}[yshift=-108mm]
+  \fill[legendgray] (8mm, -1.5mm) rectangle (11mm, 1.5mm);
+  \node[leg] at (13mm, 0) {full attention block};
+  \fill[legendgray] (54mm, 1.5mm) -- (54mm, -1.5mm) -- (57mm, -1.5mm) -- cycle;
+  \node[leg] at (59mm, 0) {causal block (diagonal)};
+  \fill[legendgray] (104mm, 1.5mm) -- (107mm, 1.5mm) -- (107mm, -1.5mm) -- cycle;
+  \node[leg] at (109mm, 0) {partial block (window edge)};
+  \draw[gridline, line width=0.4pt] (159mm, -1.5mm) rectangle (162mm, 1.5mm);
+  \node[leg] at (164mm, 0) {skipped (outside window / future)};
+\end{scope}
+
+\end{tikzpicture}

@@ -1,0 +1,144 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="512" viewBox="0 78 960 512" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .title  { font-size: 18px; font-weight: 700; fill: #1a1a1a; }
+      .sub    { font-size: 12.5px; fill: #555; }
+      .axis   { font-size: 12px; fill: #444; }
+      .idx    { font-size: 10px; fill: #888; }
+      .barval { font-size: 12px; font-weight: 700; fill: #222; }
+      .barlab { font-size: 11px; fill: #444; }
+      .leg    { font-size: 12px; fill: #333; }
+      .cap    { font-size: 13px; fill: #333; }
+      .capt   { font-size: 15px; font-weight: 700; }
+    </style>
+  </defs>
+
+  <!-- ============================================================= -->
+  <!-- PANEL (a)  CONTIGUOUS                                          -->
+  <!-- ============================================================= -->
+  <!-- full-attention row regions (j < i) -->
+  <rect x="90" y="128" width="33"  height="33" fill="#4E79A7"/>
+  <rect x="90" y="161" width="66"  height="33" fill="#F28E2B"/>
+  <rect x="90" y="194" width="99"  height="33" fill="#F28E2B"/>
+  <rect x="90" y="227" width="132" height="33" fill="#59A14F"/>
+  <rect x="90" y="260" width="165" height="33" fill="#59A14F"/>
+  <rect x="90" y="293" width="198" height="33" fill="#E15759"/>
+  <rect x="90" y="326" width="231" height="33" fill="#E15759"/>
+
+  <!-- diagonal causal triangles (j == i) -->
+  <polygon points="90,95 90,128 123,128"    fill="#4E79A7"/>
+  <polygon points="123,128 123,161 156,161" fill="#4E79A7"/>
+  <polygon points="156,161 156,194 189,194" fill="#F28E2B"/>
+  <polygon points="189,194 189,227 222,227" fill="#F28E2B"/>
+  <polygon points="222,227 222,260 255,260" fill="#59A14F"/>
+  <polygon points="255,260 255,293 288,293" fill="#59A14F"/>
+  <polygon points="288,293 288,326 321,326" fill="#E15759"/>
+  <polygon points="321,326 321,359 354,359" fill="#E15759"/>
+
+  <!-- grid lines 8x8 -->
+  <g stroke="#bdbdbd" stroke-width="0.8">
+    <line x1="90"  y1="95" x2="90"  y2="359"/><line x1="123" y1="95" x2="123" y2="359"/>
+    <line x1="156" y1="95" x2="156" y2="359"/><line x1="189" y1="95" x2="189" y2="359"/>
+    <line x1="222" y1="95" x2="222" y2="359"/><line x1="255" y1="95" x2="255" y2="359"/>
+    <line x1="288" y1="95" x2="288" y2="359"/><line x1="321" y1="95" x2="321" y2="359"/>
+    <line x1="354" y1="95" x2="354" y2="359"/>
+    <line x1="90" y1="95"  x2="354" y2="95"/><line x1="90" y1="128" x2="354" y2="128"/>
+    <line x1="90" y1="161" x2="354" y2="161"/><line x1="90" y1="194" x2="354" y2="194"/>
+    <line x1="90" y1="227" x2="354" y2="227"/><line x1="90" y1="260" x2="354" y2="260"/>
+    <line x1="90" y1="293" x2="354" y2="293"/><line x1="90" y1="326" x2="354" y2="326"/>
+    <line x1="90" y1="359" x2="354" y2="359"/>
+  </g>
+  <rect x="90" y="95" width="264" height="264" fill="none" stroke="#444" stroke-width="1.4"/>
+
+  <!-- axis labels -->
+  <text x="222" y="377" class="axis" text-anchor="middle">key-value chunk &#8594;</text>
+  <text x="64" y="227" class="axis" text-anchor="middle" transform="rotate(-90 64 227)">&#8592; query chunk</text>
+  <g class="idx" text-anchor="middle">
+    <text x="106" y="91">0</text><text x="139" y="91">1</text><text x="172" y="91">2</text><text x="205" y="91">3</text>
+    <text x="238" y="91">4</text><text x="271" y="91">5</text><text x="304" y="91">6</text><text x="337" y="91">7</text>
+  </g>
+
+  <!-- load bars (a): loads 3,7,11,15  (scale 15 -> 80px, baseline y=500) -->
+  <line x1="110" y1="500" x2="330" y2="500" stroke="#444" stroke-width="1.2"/>
+  <rect x="118" y="484" width="34" height="16" fill="#4E79A7"/>
+  <rect x="176" y="462.7" width="34" height="37.3" fill="#F28E2B"/>
+  <rect x="234" y="441.3" width="34" height="58.7" fill="#59A14F"/>
+  <rect x="292" y="420" width="34" height="80" fill="#E15759"/>
+  <g class="barval" text-anchor="middle">
+    <text x="135" y="479">3</text><text x="193" y="458">7</text><text x="251" y="436">11</text><text x="309" y="415">15</text>
+  </g>
+  <g class="barlab" text-anchor="middle">
+    <text x="135" y="514">GPU0</text><text x="193" y="514">GPU1</text><text x="251" y="514">GPU2</text><text x="309" y="514">GPU3</text>
+  </g>
+  <text x="222" y="535" class="capt" text-anchor="middle" fill="#b1342f">unbalanced work</text>
+
+  <!-- ============================================================= -->
+  <!-- PANEL (b)  ZIGZAG                                              -->
+  <!-- ============================================================= -->
+  <!-- full-attention row regions (j < i) -->
+  <rect x="620" y="128" width="33"  height="33" fill="#F28E2B"/>
+  <rect x="620" y="161" width="66"  height="33" fill="#59A14F"/>
+  <rect x="620" y="194" width="99"  height="33" fill="#E15759"/>
+  <rect x="620" y="227" width="132" height="33" fill="#E15759"/>
+  <rect x="620" y="260" width="165" height="33" fill="#59A14F"/>
+  <rect x="620" y="293" width="198" height="33" fill="#F28E2B"/>
+  <rect x="620" y="326" width="231" height="33" fill="#4E79A7"/>
+
+  <!-- diagonal causal triangles (j == i) -->
+  <polygon points="620,95 620,128 653,128"    fill="#4E79A7"/>
+  <polygon points="653,128 653,161 686,161"   fill="#F28E2B"/>
+  <polygon points="686,161 686,194 719,194"   fill="#59A14F"/>
+  <polygon points="719,194 719,227 752,227"   fill="#E15759"/>
+  <polygon points="752,227 752,260 785,260"   fill="#E15759"/>
+  <polygon points="785,260 785,293 818,293"   fill="#59A14F"/>
+  <polygon points="818,293 818,326 851,326"   fill="#F28E2B"/>
+  <polygon points="851,326 851,359 884,359"   fill="#4E79A7"/>
+
+  <!-- grid lines 8x8 -->
+  <g stroke="#bdbdbd" stroke-width="0.8">
+    <line x1="620" y1="95" x2="620" y2="359"/><line x1="653" y1="95" x2="653" y2="359"/>
+    <line x1="686" y1="95" x2="686" y2="359"/><line x1="719" y1="95" x2="719" y2="359"/>
+    <line x1="752" y1="95" x2="752" y2="359"/><line x1="785" y1="95" x2="785" y2="359"/>
+    <line x1="818" y1="95" x2="818" y2="359"/><line x1="851" y1="95" x2="851" y2="359"/>
+    <line x1="884" y1="95" x2="884" y2="359"/>
+    <line x1="620" y1="95"  x2="884" y2="95"/><line x1="620" y1="128" x2="884" y2="128"/>
+    <line x1="620" y1="161" x2="884" y2="161"/><line x1="620" y1="194" x2="884" y2="194"/>
+    <line x1="620" y1="227" x2="884" y2="227"/><line x1="620" y1="260" x2="884" y2="260"/>
+    <line x1="620" y1="293" x2="884" y2="293"/><line x1="620" y1="326" x2="884" y2="326"/>
+    <line x1="620" y1="359" x2="884" y2="359"/>
+  </g>
+  <rect x="620" y="95" width="264" height="264" fill="none" stroke="#444" stroke-width="1.4"/>
+
+  <!-- axis labels -->
+  <text x="752" y="377" class="axis" text-anchor="middle">key-value chunk &#8594;</text>
+  <text x="594" y="227" class="axis" text-anchor="middle" transform="rotate(-90 594 227)">&#8592; query chunk</text>
+  <g class="idx" text-anchor="middle">
+    <text x="636" y="91">0</text><text x="669" y="91">1</text><text x="702" y="91">2</text><text x="735" y="91">3</text>
+    <text x="768" y="91">4</text><text x="801" y="91">5</text><text x="834" y="91">6</text><text x="867" y="91">7</text>
+  </g>
+
+  <!-- load bars (b): all 9 -> 48px  (same 15->80 scale as panel a) -->
+  <line x1="640" y1="500" x2="860" y2="500" stroke="#444" stroke-width="1.2"/>
+  <rect x="648" y="452" width="34" height="48" fill="#4E79A7"/>
+  <rect x="706" y="452" width="34" height="48" fill="#F28E2B"/>
+  <rect x="764" y="452" width="34" height="48" fill="#59A14F"/>
+  <rect x="822" y="452" width="34" height="48" fill="#E15759"/>
+  <g class="barval" text-anchor="middle">
+    <text x="665" y="447">9</text><text x="723" y="447">9</text><text x="781" y="447">9</text><text x="839" y="447">9</text>
+  </g>
+  <g class="barlab" text-anchor="middle">
+    <text x="665" y="514">GPU0</text><text x="723" y="514">GPU1</text><text x="781" y="514">GPU2</text><text x="839" y="514">GPU3</text>
+  </g>
+  <text x="752" y="535" class="capt" text-anchor="middle" fill="#2f7d32">balanced work</text>
+
+  <!-- ===== shared legend ===== -->
+  <line x1="80" y1="555" x2="880" y2="555" stroke="#e0e0e0" stroke-width="1"/>
+  <g transform="translate(150,572)">
+    <rect x="0" y="-10" width="14" height="14" fill="#888"/>
+    <text x="20" y="1" class="leg">full attention block</text>
+    <polygon points="190,-10 190,4 204,4" fill="#888"/>
+    <text x="212" y="1" class="leg">causal block (diagonal)</text>
+    <rect x="380" y="-10" width="14" height="14" fill="none" stroke="#bdbdbd"/>
+    <text x="400" y="1" class="leg">skipped (future / masked)</text>
+  </g>
+</svg>
