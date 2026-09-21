@@ -1,0 +1,83 @@
+{
+  "note": "PLACEHOLDER \u2014 segment order and token boundaries were generated for layout; replace from_tokens/to_tokens with the real cluster schedule. Tokens are in trillions.",
+  "segments": [
+    {
+      "hardware": "H100",
+      "count": 16,
+      "from_tokens": 0.0,
+      "to_tokens": 0.2676
+    },
+    {
+      "hardware": "A100 40GB",
+      "count": 192,
+      "from_tokens": 0.2676,
+      "to_tokens": 0.4808
+    },
+    {
+      "hardware": "V100",
+      "count": 64,
+      "from_tokens": 0.4808,
+      "to_tokens": 0.6116
+    },
+    {
+      "hardware": "V100",
+      "count": 48,
+      "from_tokens": 0.6116,
+      "to_tokens": 0.7705
+    },
+    {
+      "hardware": "A100 80GB",
+      "count": 24,
+      "from_tokens": 0.7705,
+      "to_tokens": 0.8857
+    },
+    {
+      "hardware": "H100",
+      "count": 24,
+      "from_tokens": 0.8857,
+      "to_tokens": 1.2421
+    },
+    {
+      "hardware": "H100",
+      "count": 16,
+      "from_tokens": 1.2421,
+      "to_tokens": 1.5455
+    },
+    {
+      "hardware": "TPU v6e",
+      "count": 4,
+      "from_tokens": 1.5455,
+      "to_tokens": 1.8295
+    },
+    {
+      "hardware": "TPU v5p",
+      "count": 32,
+      "from_tokens": 1.8295,
+      "to_tokens": 2.2238
+    },
+    {
+      "hardware": "V100",
+      "count": 24,
+      "from_tokens": 2.2238,
+      "to_tokens": 2.5088
+    },
+    {
+      "hardware": "A100 40GB",
+      "count": 32,
+      "from_tokens": 2.5088,
+      "to_tokens": 2.8403
+    },
+    {
+      "hardware": "V100",
+      "count": 56,
+      "from_tokens": 2.8403,
+      "to_tokens": 3.1493
+    },
+    {
+      "hardware": "TPU v6e",
+      "count": 16,
+      "from_tokens": 3.1493,
+      "to_tokens": 3.41904
+    }
+  ]
+}

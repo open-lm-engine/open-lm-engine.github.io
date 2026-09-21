@@ -1,0 +1,153 @@
+---
+import { Image } from 'astro:assets';
+import type { ImageMetadata } from 'astro';
+import BaseLayout from './BaseLayout.astro';
+import TableOfContents from '../components/TableOfContents.astro';
+import SkyControls from '../components/SkyControls.astro';
+
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Author {
+  name: string;
+  url?: string;
+  affiliations?: number[];
+  equalAdvising?: boolean;
+}
+
+interface Props {
+  title: string;
+  subtitle?: string;
+  description: string;
+  author?: string;
+  authors?: Author[];
+  affiliations?: string[];
+  headings: Heading[];
+  codeColor?: 'pink' | 'green';
+  heroImage?: ImageMetadata;
+  // opts this post into the starfield background and its controls
+  sky?: boolean;
+  // description shown in front of the dark-mode toggle under the title
+  skyPrompt?: string;
+}
+
+const { title, subtitle, description, author, authors, affiliations, headings, codeColor, heroImage, sky = false, skyPrompt } = Astro.props;
+// 'green' is the site default (--code-accent already resolves to it); 'pink' points
+// --code-accent at the original --accent pink instead, which is itself theme-aware.
+const codeAccentStyle = codeColor === 'pink' ? '--code-accent: var(--accent);' : undefined;
+
+// When a post carries a heroImage, dot the title's first lowercase "i" with it
+// instead of the glyph's own dot: swap in dotless-i (U+0131, "ı") for the stem
+// and place the image where the dot would be.
+const iIndex = heroImage ? title.indexOf('i') : -1;
+const titleBeforeI = iIndex >= 0 ? title.slice(0, iIndex) : title;
+const titleAfterI = iIndex >= 0 ? title.slice(iIndex + 1) : '';
+---
+
+<BaseLayout title={`${title} | blog`} description={description} sky={sky}>
+  <div class="article-shell">
+    <TableOfContents headings={headings} />
+
+    <section class="article-hero">
+      <h1>
+        {iIndex >= 0 ? (
+          <>
+            {titleBeforeI}<span class="i-star">{'ı'}<Image src={heroImage!} alt="" class="i-star-dot" width={128} height={128} /></span>{titleAfterI}
+          </>
+        ) : (
+          title
+        )}
+      </h1>
+      {subtitle && <p class="article-subtitle">{subtitle}</p>}
+      {authors && authors.length > 0 ? (
+        <p class="article-meta">
+          {authors.map((a, i) => (
+            <>
+              {a.url ? <a href={a.url} target="_blank" rel="noopener noreferrer">{a.name}</a> : a.name}
+              {((a.affiliations && a.affiliations.length > 0) || a.equalAdvising) && (
+                <sup>
+                  {a.affiliations && a.affiliations.length > 0 && a.affiliations.join(',')}
+                  {a.equalAdvising && '*'}
+                </sup>
+              )}
+              {i < authors.length - 1 ? ', ' : ''}
+            </>
+          ))}
+        </p>
+      ) : (
+        author && <p class="article-meta">{author}</p>
+      )}
+      {affiliations && affiliations.length > 0 && (
+        <p class="article-affiliations">
+          {affiliations.map((aff, i) => (
+            <>
+              <sup>{i + 1}</sup>{aff}
+              {i < affiliations.length - 1 ? ', ' : ''}
+            </>
+          ))}
+        </p>
+      )}
+      {authors && authors.some((a) => a.equalAdvising) && (
+        <p class="article-affiliations">* Equal advising</p>
+      )}
+      {sky && (
+        <div class="hero-controls">
+          <SkyControls prompt={skyPrompt} labelled showStars />
+        </div>
+      )}
+    </section>
+
+    <article id="article" class="article-content" style={codeAccentStyle}>
+      <slot />
+    </article>
+  </div>
+
+  <script>
+    // Numbers every figure in document order (standalone figures get "N";
+    // figures sharing a .figure-row get "Na"/"Nb"/"Nc") and injects the
+    // number into each figcaption, then resolves every <FigRef> placeholder
+    // from that same computed map — one JS pass, no CSS counter round-trip,
+    // so a reordered figure can never leave a stale number anywhere.
+    (function () {
+      const root = document.querySelector('.article-content');
+      if (!root) return;
+
+      const numbers = new Map();
+      let fignum = 0;
+      const handled = new Set();
+
+      root.querySelectorAll('figure, .figure-row').forEach((node) => {
+        if (handled.has(node)) return;
+
+        const isRow = node.classList.contains('figure-row');
+        const figs = isRow ? Array.from(node.querySelectorAll(':scope > figure')) : node.closest('.figure-row') ? [] : [node];
+        if (isRow || figs.length) fignum++;
+
+        figs.forEach((fig, i) => {
+          handled.add(fig);
+          const num = isRow ? `${fignum}${String.fromCharCode(97 + i)}` : `${fignum}`;
+          if (fig.id) numbers.set(fig.id, num);
+          const caption = fig.querySelector(':scope > figcaption');
+          if (caption && !caption.querySelector('.fig-num')) {
+            const span = document.createElement('span');
+            span.className = 'fig-num';
+            span.textContent = `Figure ${num}. `;
+            caption.prepend(span);
+          }
+        });
+      });
+
+      document.querySelectorAll('a.fig-ref[data-fig-ref]').forEach((a) => {
+        const targetId = a.getAttribute('data-fig-ref');
+        let num = targetId ? numbers.get(targetId) : undefined;
+        if (!num) return;
+        if (a.hasAttribute('data-fig-ref-group')) num = num.replace(/[a-z]$/, '');
+        const word = a.hasAttribute('data-fig-ref-full') ? 'Figure' : 'Fig';
+        a.textContent = `${word} ${num}`;
+      });
+    })();
+  </script>
+</BaseLayout>

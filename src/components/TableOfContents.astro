@@ -1,0 +1,86 @@
+---
+interface Heading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings: Heading[];
+}
+
+const { headings } = Astro.props;
+
+// Mirrors the CSS counters in global.css (.article-content h1..h3::before,
+// which itself stops at h3 — h4 is never numbered in the article body
+// either), same document-order, per-depth counting, skipping the
+// rehype-generated "References" footnotes heading so the two never disagree.
+const counters = [0, 0, 0, 0];
+const numbered = headings.map((h) => {
+  if (h.slug === 'footnote-label' || h.depth < 1 || h.depth > 4) return { ...h, number: '' };
+  counters[h.depth - 1]++;
+  for (let d = h.depth; d < 4; d++) counters[d] = 0;
+  if (h.depth === 4) return { ...h, number: '' };
+  return { ...h, number: counters.slice(0, h.depth).join('.') };
+});
+// Every level the numbering above supports (h1 chapters down to h4
+// sub-topics) — a post like Rigel's leans on h1 as its main section
+// structure with h4 sub-topics underneath rather than h2/h3, so excluding
+// h1 here (as earlier posts assumed, since their h1 chapter breaks are
+// already visually obvious in-page) left the TOC missing its main sections.
+const items = numbered.filter((h) => h.depth >= 1 && h.depth <= 4);
+---
+
+{items.length > 0 && (
+  <>
+    <nav class="article-toc" aria-label="Table of contents">
+      <div class="toc-label">Table of contents</div>
+      <ol>
+        {items.map((h) => (
+          <li class={`toc-h${h.depth}`}>
+            <a href={`#${h.slug}`}>{h.number && `${h.number} `}{h.text}</a>
+          </li>
+        ))}
+      </ol>
+    </nav>
+
+    <details class="toc-mobile">
+      <summary>Table of contents</summary>
+      <ol>
+        {items.map((h) => (
+          <li>
+            <a href={`#${h.slug}`}>{h.number && `${h.number} `}{h.text}</a>
+          </li>
+        ))}
+      </ol>
+    </details>
+
+    <script>
+      (function () {
+        const links = document.querySelectorAll(".article-toc a[href^='#']");
+        if (!links.length) return;
+        const byId = new Map();
+        links.forEach((a) => byId.set(a.getAttribute('href')!.slice(1), a));
+        const heads = [...byId.keys()]
+          .map((id) => document.getElementById(id))
+          .filter(Boolean) as HTMLElement[];
+        let active: Element | null = null;
+        function onScroll() {
+          const y = window.scrollY + 140;
+          let current = heads[0];
+          for (const h of heads) {
+            if (h.offsetTop <= y) current = h;
+            else break;
+          }
+          const link = current && byId.get(current.id);
+          if (!link || link === active) return;
+          if (active) active.classList.remove('active');
+          active = link;
+          active.classList.add('active');
+        }
+        document.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+      })();
+    </script>
+  </>
+)}

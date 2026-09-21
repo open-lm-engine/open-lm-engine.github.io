@@ -1,0 +1,60 @@
+---
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import '../styles/global.css';
+import 'katex/dist/katex.min.css';
+
+interface Props {
+  title: string;
+  description?: string;
+  // the starfield (canvas + its controls) only ever renders on posts that opt in
+  sky?: boolean;
+}
+
+const { title, description, sky = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    {description && <meta name="description" content={description} />}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <script define:vars={{ sky }}>
+      (function () {
+        // dark by default everywhere, unless the visitor explicitly picked light
+        var stored = localStorage.getItem('theme');
+        document.documentElement.setAttribute('data-theme', stored === 'light' ? 'light' : 'dark');
+        if (sky) {
+          if (localStorage.getItem('sky') === 'on') {
+            document.documentElement.setAttribute('data-sky', 'on');
+          }
+          if (localStorage.getItem('sky-quality') === 'high') {
+            document.documentElement.setAttribute('data-sky-quality', 'high');
+          }
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- dark-mode sky (posts with sky: true only): stars, the blue star and its
+         planets, a ringed giant, comets. Drawn by src/scripts/sky.ts; the CSS
+         far-star layers sit behind it. -->
+    {sky && <canvas class="sky-canvas" aria-hidden="true"></canvas>}
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Header showStars={sky} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer />
+    {sky && (
+      <script>
+        import '../scripts/sky.ts';
+      </script>
+    )}
+  </body>
+</html>

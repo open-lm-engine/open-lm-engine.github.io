@@ -1,0 +1,230 @@
+\definecolor{opsym}{RGB}{1,1,1}
+\definecolor{fixedink}{RGB}{2,2,2}
+\begin{tikzpicture}[
+    font=\small,
+    >={Stealth[length=1.6mm,width=1.4mm]},
+    line width=0.4pt,
+    block/.style={
+        rectangle, rounded corners=1.5pt, draw=black,
+        minimum width=14mm, minimum height=5mm, align=center,
+        line width=0.5pt
+    },
+    norm/.style={block, fill=cyan!25},
+    method/.style={block, fill=violet!35},
+    linear/.style={block, fill=blue!15, minimum width=12mm, minimum height=5mm},
+    linstack/.style={block, fill=blue!15, minimum width=12mm, minimum height=5mm},
+    conv/.style={block, fill=red!25, minimum width=18mm, minimum height=10mm},
+    convstack/.style={block, fill=red!25, minimum width=18mm, minimum height=10mm},
+    actsilu/.style={
+        circle, draw, fill=violet!18, inner sep=0pt, minimum size=4mm,
+        path picture={
+            \draw[line width=0.3pt, fixedink]
+                ($(path picture bounding box.west)+(0.3mm,-0.5mm)$)
+                -- ($(path picture bounding box.center)+(0,-0.5mm)$)
+                .. controls +(0.6mm,0) and +(-0.6mm,-0.4mm) ..
+                ($(path picture bounding box.east)+(-0.3mm,0.7mm)$);
+        }
+    },
+    actpsi/.style={circle, draw, fill=violet!18, inner sep=0pt, minimum size=4mm, font=\scriptsize},
+    op/.style={circle, draw, inner sep=0pt, minimum size=3.6mm, font=\scriptsize, text=opsym},
+    panel/.style={draw=none, inner sep=0pt},
+    arr/.style={->, line width=0.45pt},
+    lab/.style={font=\scriptsize, inner sep=1pt}
+]
+
+%====================== LEFT PANEL: TWO STACKED LAYERS ======================
+% --- layer 1: Mamba-2 ---
+\node[norm] (lnorm1) at (0,-5mm) {RMSNorm};
+\node[method, above=3mm of lnorm1] (lm2) {Mamba-2};
+\node[op, above=3mm of lm2] (ladd1) {+};
+\node[norm, above=5mm of ladd1] (lnorm2) {RMSNorm};
+\node[method, above=3mm of lnorm2] (lmlp) {MoE};
+\node[op, above=3mm of lmlp] (ladd2) {+};
+
+\draw[arr] (lnorm1) -- (lm2);
+\draw[arr] (lm2) -- (ladd1);
+\draw[arr] (ladd1) -- (lnorm2);
+\draw[arr] (lnorm2) -- (lmlp);
+\draw[arr] (lmlp) -- (ladd2);
+
+% input arrow (bottom of the whole stack)
+\draw[arr] ($(lnorm1.south)+(0,-7mm)$) -- (lnorm1);
+
+% layer-1 residuals
+\coordinate (lr1) at ($(lnorm1.south)+(0,-3.5mm)$);
+\coordinate (lr2) at ($(ladd1.north)+(0,2.5mm)$);
+\draw (lr1) -- ++(-12mm,0) |- (ladd1.west);
+\draw (lr2) -- ++(-12mm,0) |- (ladd2.west);
+
+% --- layer 2: Attention (stacked directly above; ×3 marks the repeat count) ---
+\node[norm, above=3mm of ladd2] (lnorm1b) {RMSNorm};
+\node[method, above=3mm of lnorm1b] (lattn) {Attention};
+\node[op, above=3mm of lattn] (ladd1b) {+};
+\node[norm, above=5mm of ladd1b] (lnorm2b) {RMSNorm};
+\node[method, above=3mm of lnorm2b] (lmlpb) {MoE};
+\node[op, above=3mm of lmlpb] (ladd2b) {+};
+
+\draw[arr] (ladd2) -- (lnorm1b) node[lab, text=opsym, pos=0.5, right=2.2mm] {$\times 3$};
+\draw[arr] (lnorm1b) -- (lattn);
+\draw[arr] (lattn) -- (ladd1b);
+\draw[arr] (ladd1b) -- (lnorm2b);
+\draw[arr] (lnorm2b) -- (lmlpb);
+\draw[arr] (lmlpb) -- (ladd2b);
+\draw[arr] (ladd2b.north) -- ++(0,7mm);
+
+% layer-2 residuals
+\coordinate (lr1b) at ($(ladd2.north)+(0,1.5mm)$);
+\coordinate (lr2b) at ($(ladd1b.north)+(0,2.5mm)$);
+\draw (lr1b) -- ++(-12mm,0) |- (ladd1b.west);
+\draw (lr2b) -- ++(-12mm,0) |- (ladd2b.west);
+
+% panel background around both layers
+\begin{scope}[on background layer]
+    \node[panel, fit=(lnorm1) (ladd2b), inner xsep=14mm, inner ysep=8mm] (lpanel) {};
+\end{scope}
+
+%====================== RIGHT PANEL A: MAMBA-2 LAYER DETAIL ======================
+\coordinate (R) at ($(lpanel.east)+(40mm,-20mm)$);
+
+% bottom Linear projections
+\node[linear] (rlinG) at ($(R)+(18mm,-22mm)$) {Linear};
+\node[linear] (rlinF) at ($(rlinG)+(-14mm,0)$) {Linear};
+\node[linear] (rlinQKVf) at ($(rlinF)+(-18mm,0)$) {Linear};
+% stacked appearance behind rlinQKVf
+\begin{scope}[on background layer]
+    \node[linstack] at ($(rlinQKVf)+(-3.2mm,3.2mm)$) {};
+    \node[linstack] at ($(rlinQKVf)+(-1.6mm,1.6mm)$) {};
+\end{scope}
+
+% causal convolution stack
+\node[conv, above=10mm of rlinQKVf] (rconv) {Causal\\Conv1D};
+\begin{scope}[on background layer]
+    \node[convstack] at ($(rconv)+(-3.2mm,3.2mm)$) {};
+    \node[convstack] at ($(rconv)+(-1.6mm,1.6mm)$) {};
+\end{scope}
+
+% activation circles above conv (q,k,v)
+\node[actsilu] (raq) at ($(rconv.north)+(-7mm,8mm)$) {};
+\node[actsilu] (rak) at ($(rconv.north)+(0,8mm)$) {};
+\node[actsilu] (rav) at ($(rconv.north)+(7mm,8mm)$) {};
+% f and g activations
+\node[actpsi] (raf) at ($(rlinF.north)+(0,8mm)$) {$\psi$};
+\node[actsilu] (rag) at ($(rlinG.north)+(0,8mm)$) {};
+
+% conv -> activations (vertical, each from its respective stack layer's top edge)
+\draw[arr] ($(rconv.north)+(-7mm,3.2mm)$) -- (raq);   % back conv -> q
+\draw[arr] ($(rconv.north)+(0,1.6mm)$)    -- (rak);   % middle conv -> k
+\draw[arr] ($(rconv.north)+(7mm,0)$)      -- (rav);   % front conv -> v
+
+% linears -> conv / activations
+\draw[arr] ($(rlinQKVf.north)+(-3.2mm,3.2mm)$) -- ($(rconv.south)+(-3.2mm,0)$);
+\draw[arr] ($(rlinQKVf.north)+(-1.6mm,1.6mm)$) -- ($(rconv.south)+(-1.6mm,0)$);
+\draw[arr] (rlinQKVf.north) -- (rconv.south);
+\draw[arr] (rlinF.north) -- (raf.south);
+\draw[arr] (rlinG.north) -- (rag.south);
+
+% recurrence block
+\node[method, minimum width=30mm, minimum height=6mm] (rrec) at ($(rak)+(6mm,11mm)$) {Mamba-2 recurrence};
+
+% q,k,v,f arrows up to recurrence
+\draw[arr] (raq.north) -- (raq.north |- rrec.south) node[lab,text=opsym,pos=0.55,right=0.4mm] {$q_t$};
+\draw[arr] (rak.north) -- (rak.north |- rrec.south) node[lab,text=opsym,pos=0.55,right=0.4mm] {$k_t$};
+\draw[arr] (rav.north) -- (rav.north |- rrec.south) node[lab,text=opsym,pos=0.55,right=0.4mm] {$v_t$};
+\draw[arr] (raf.north) -- (raf.north |- rrec.south) node[lab,text=opsym,pos=0.55,right=0.4mm] {$f_t$};
+% height of the f_t label above, reused below so g_t sits at the same level
+\coordinate (ftlabellevel) at ($(raf.north)!0.55!(raf.north |- rrec.south)$);
+
+% multiplication and norm/linear
+\node[op, above=3mm of rrec] (rmul) {$\times$};
+\node[norm, above=3mm of rmul] (rrms) {Norm};
+\node[linear, above=3mm of rrms] (rfin) {Linear};
+
+\draw[arr] (rrec.north) -- (rmul.south);
+\draw[arr] (rmul.north) -- (rrms.south);
+\draw[arr] (rrms.north) -- (rfin.south);
+\draw[arr] (rfin.north) -- ++(0,6mm);
+
+% g_t bypass: up from rag and into rmul from the right; label sits on the
+% vertical leg at the same height as f_t's label (ftlabellevel), not at a
+% fraction of the whole bent path's length
+\draw[arr] (rag.north) |- (rmul.east);
+\node[lab, text=opsym, anchor=west] at ($(rag.north |- ftlabellevel)+(0.4mm,0)$) {$g_t$};
+
+% horizontal input bus feeding the three Linears
+\coordinate (rinBus) at ($(rlinF.south)+(0,-4mm)$);
+\coordinate (rinBot) at ($(rinBus)+(0,-5mm)$);
+
+% vertical arrows from the bus up into each Linear
+\draw[arr] (rlinQKVf.south |- rinBus) -- (rlinQKVf.south);
+\draw[arr] (rinBus)                   -- (rlinF.south);
+\draw[arr] (rlinG.south |- rinBus)    -- (rlinG.south);
+
+% horizontal bus connecting the drops
+\draw (rlinQKVf.south |- rinBus) -- (rlinG.south |- rinBus);
+
+% input arrow attached to the bus under rlinF
+\draw[arr] (rinBot) -- (rinBus);
+
+% panel background
+\begin{scope}[on background layer]
+    \node[rounded corners=2pt, draw=gray!70, line width=0.6pt,
+          fit=(rlinQKVf) (rlinG) (rfin) (rmul) (rrec) (rinBus),
+          inner xsep=5mm, inner ysep=3mm] (rpanel) {};
+\end{scope}
+
+% dashed green connector from Mamba-2 mixer (left) to its detail panel (right)
+\draw[->, dashed, green!55!black, line width=0.5pt]
+    (lm2.east) to[out=20, in=180] ($(rpanel.west)+(0,2mm)$);
+
+%====================== LEFT PANEL: ATTENTION (GQA-XSA) LAYER DETAIL ======================
+\coordinate (LA) at ($(lpanel.west)+(-46mm,-13mm)$); % panel centred on the stack
+
+% bottom Linear projections for q, k, v (GQA: k/v are shared across query groups)
+\node[linear] (alinQ) at ($(LA)+(6mm,0)$) {Linear};
+\node[linear] (alinK) at ($(alinQ)+(15mm,0)$) {Linear};
+\node[linear] (alinV) at ($(alinK)+(13mm,0)$) {Linear};
+
+% horizontal input bus feeding the three Linears
+% the input comes up under the middle projection, in line with k_t
+\coordinate (ainBus) at ($(alinK.south)+(0,-4mm)$);
+\coordinate (ainBot) at ($(ainBus)+(0,-5mm)$);
+\draw[arr] (alinQ.south |- ainBus) -- (alinQ.south);
+\draw[arr] (ainBus) -- (alinK.south);
+\draw[arr] (alinV.south |- ainBus) -- (alinV.south);
+\draw (alinQ.south |- ainBus) -- (alinV.south |- ainBus);
+\draw[arr] (ainBot) -- (ainBus);
+
+% q,k,v labelled arrows into the attention block
+\node[method, minimum width=34mm, minimum height=8mm, above=13mm of alinK] (aattn) {GQA + SWA};
+\draw[arr] (alinQ.north) -- (alinQ.north |- aattn.south) node[lab,text=opsym,pos=0.6,left=0.4mm] {$q_t$};
+\draw[arr] (alinK.north) -- (alinK.north |- aattn.south) node[lab,text=opsym,pos=0.6,right=0.4mm] {$k_t$};
+\draw[arr] (alinV.north) -- (alinV.north |- aattn.south) node[lab,text=opsym,pos=0.6,right=0.4mm] {$v_t$};
+
+% XSA correction: subtract v's own-value projection out of the attention output
+\node[op, above=6mm of aattn] (asub) {$-$};
+\draw[arr] (aattn.north) -- (asub.south) node[lab,text=opsym,pos=0.4,left=0.4mm] {$z_t$};
+
+\node[linear, above=5mm of asub] (alinOut) {Linear};
+\draw[arr] (asub.north) -- (alinOut.south);
+\draw[arr] (alinOut.north) -- ++(0,6mm);
+
+% v_t bypass into the correction node: branches off just above the value
+% projection, runs up the outside of the attention block, then into "−"
+\coordinate (vbranch) at ($(alinV.north)+(0,4.5mm)$);
+\coordinate (vbyp) at ($(aattn.east)+(4.5mm,0)$);
+\fill[black] (vbranch) circle (0.35mm);
+\draw[arr] (vbranch) -| (vbyp) |- (asub.east)
+    node[lab, text=opsym, pos=0.5, right=0.4mm] {$v_t$};
+
+% panel background
+\begin{scope}[on background layer]
+    \node[rounded corners=2pt, draw=gray!70, line width=0.6pt,
+          fit=(alinQ) (alinV) (alinOut) (asub) (aattn) (ainBus) (vbyp),
+          inner xsep=5mm, inner ysep=3mm] (apanel) {};
+\end{scope}
+
+% dashed green connector from Attention mixer (left) to its detail panel (further left)
+\draw[->, dashed, green!55!black, line width=0.5pt]
+    (lattn.west) to[out=160, in=0] ($(apanel.east)+(0,2mm)$);
+
+\end{tikzpicture}

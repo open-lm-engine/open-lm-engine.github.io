@@ -1,0 +1,13 @@
+\caption{Mamba-2 context-parallel forward. Accelerator $i = 0, ..., N_\textrm{CP} - 1$ owns chunk $i$ (tokens $[iC, (i+1)C)$) and executes the same procedure; the coloured quantities are the only ones exchanged across accelerators.}
+\begin{algorithmic}
+\REQUIRE local chunk $\mathbf{Q}_{[i]}, \mathbf{K}_{[i]} \in \mathbb{R}^{C \times K}$, $\mathbf{V}_{[i]} \in \mathbb{R}^{C \times V}$, decays $F_{[i]}$, base state $\mathbf{H}_0$ (shared model buffer, requires no communication)
+\ENSURE local output chunk $\mathbf{Y}_{[i]} \in \mathbb{R}^{C \times V}$
+\STATE Compute \Exch{$A_i$} $\leftarrow F_{(i+1)C} / F_{iC}$
+\STATE Compute \Exch{$\mathbf{B}_{[i]}$} $\leftarrow \mathbf{K}_{[i]}^\top \mathrm{diag}\left(F_{(i+1)C}/F_{[i]}\right) \mathbf{V}_{[i]}$
+\STATE All-gather \Exch{$\{A_j, \mathbf{B}_{[j]}\}_{j=0}^{N_\textrm{CP}-1}$} across accelerators
+\FOR{$j = 0$ to $i-1$}
+\STATE $\mathbf{H}_{(j+1)C} \leftarrow$ \Exch{$A_j$}$\, \mathbf{H}_{jC} +$ \Exch{$\mathbf{B}_{[j]}$}
+\ENDFOR
+\STATE Compute $\mathbf{Y}_{[i]}$ via the chunkwise-parallel form above, using the corrected starting state $\mathbf{H}_{iC}$
+\STATE Return $\mathbf{Y}_{[i]}$
+\end{algorithmic}

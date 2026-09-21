@@ -1,0 +1,29 @@
+---
+// Renders a pre-authored SVG figure (fixed dark-on-light styling baked into
+// the SVG itself, not theme-aware) on its own light card so it stays legible
+// regardless of the site's light/dark theme.
+interface Props {
+  source: string;
+  alt: string;
+}
+const { source, alt } = Astro.props;
+---
+
+<div class="raw-svg-card" role="img" aria-label={alt} set:html={source} />
+
+<style>
+  .raw-svg-card {
+    background: #fdfdfc;
+    border: 1px solid #e4ded2;
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    justify-content: center;
+  }
+
+  .raw-svg-card :global(svg) {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+</style>

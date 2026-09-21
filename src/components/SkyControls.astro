@@ -1,0 +1,143 @@
+---
+// The sky controls — theme, stars on/off, sky quality — as one reusable group.
+// The theme toggle always renders; stars + quality only render when
+// `showStars` is set, which is only true on a post that opts into the sky
+// (`sky: true` in its frontmatter). Quality is disabled while the stars are off.
+// In the header they sit in a compact row of icon pills. Under a post's title
+// (`labelled`) they stack one per line as wider pills with their text inside;
+// the stars button carries the post's own `prompt`.
+//
+// Buttons carry data-sky-action instead of ids so the group can appear more
+// than once per page; a single delegated listener below handles all of them.
+interface Props {
+  prompt?: string;
+  labelled?: boolean;
+  // the stars + quality rows only make sense on a post that has the sky; other
+  // pages (and the header on every page) get just the light/dark toggle.
+  showStars?: boolean;
+}
+const { prompt, labelled = false, showStars = false } = Astro.props;
+---
+
+<div class:list={['sky-controls', { 'sky-controls--labelled': labelled }]}>
+  <div class="sky-row sky-row--theme">
+    <button class="theme-toggle" type="button" data-sky-action="theme" aria-label="Toggle dark mode">
+      <svg class="icon-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+        <circle cx="12" cy="12" r="4.2"></circle>
+        <path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"></path>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.8 6.8 0 0 0 10.5 10.5z"></path>
+      </svg>
+      {labelled && <span class="btn-text btn-text--light">Light mode</span>}
+      {labelled && <span class="btn-text btn-text--dark">Dark mode</span>}
+    </button>
+  </div>
+  {showStars && (
+    <div class="sky-row sky-row--stars">
+      <button class="sky-toggle" type="button" data-sky-action="stars" aria-label="Toggle starry background" title="Stars on/off">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <g class="icon-stars">
+            <path d="M12 3.5l1.6 4.4 4.4 1.6-4.4 1.6L12 15.5l-1.6-4.4L6 9.5l4.4-1.6z"></path>
+            <path d="M5 15.5l.8 2.2 2.2.8-2.2.8L5 21.5l-.8-2.2-2.2-.8 2.2-.8z"></path>
+            <path d="M18.5 14.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"></path>
+          </g>
+          <path class="icon-off" d="M3.5 3.5l17 17"></path>
+        </svg>
+        {labelled && <span class="btn-text">{prompt ?? 'Starfield'}</span>}
+      </button>
+    </div>
+  )}
+  {showStars && (
+    <div class="sky-row sky-row--quality">
+      <button class="sky-quality" type="button" data-sky-action="quality" aria-label="Sky quality" title="Sky quality — low: 30fps, standard resolution · high: full frame rate, retina, parallax">
+        {labelled && <span class="btn-text">Sky quality ·</span>}
+        <span class="q-label q-low">Low</span>
+        <span class="q-label q-high">High</span>
+      </button>
+    </div>
+  )}
+</div>
+
+<script>
+  // One delegated handler for every sky-controls group on the page. State
+  // lives on <html> as data-theme / data-sky="on" / data-sky-quality (applied
+  // before first paint by BaseLayout from localStorage); the CSS and the sky
+  // canvas both react to those attributes.
+  //
+  //   theme    flips light/dark; going dark never turns the stars on, going
+  //            light turns them off (so "stars on" always means dark mode)
+  //   stars    turns the starfield on (and switches to dark mode, since the
+  //            sky only exists there) or off
+  //   quality  only usable while the stars are actually showing
+  const root = document.documentElement;
+  const darkMq = window.matchMedia('(prefers-color-scheme: dark)');
+
+  const isDark = () => (root.getAttribute('data-theme') ?? (darkMq.matches ? 'dark' : 'light')) === 'dark';
+  const starsOn = () => root.getAttribute('data-sky') === 'on';
+
+  const sync = () => {
+    const showing = starsOn() && isDark();
+    document.querySelectorAll<HTMLElement>('.sky-toggle').forEach((b) => b.setAttribute('aria-pressed', starsOn() ? 'true' : 'false'));
+    document.querySelectorAll<HTMLButtonElement>('.sky-quality').forEach((b) => {
+      b.disabled = !showing;
+      b.title = showing
+        ? 'Sky quality — low: 30fps, standard resolution · high: full frame rate, retina, parallax'
+        : 'Turn the stars on to change sky quality';
+    });
+  };
+
+  const setTheme = (next: 'light' | 'dark') => {
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    window.dispatchEvent(new Event('themechange'));
+  };
+
+  const setStars = (on: boolean) => {
+    if (on) {
+      root.setAttribute('data-sky', 'on');
+      localStorage.setItem('sky', 'on');
+    } else {
+      root.removeAttribute('data-sky');
+      localStorage.removeItem('sky');
+    }
+  };
+
+  const setQuality = (high: boolean) => {
+    if (high) {
+      root.setAttribute('data-sky-quality', 'high');
+      localStorage.setItem('sky-quality', 'high');
+    } else {
+      root.removeAttribute('data-sky-quality');
+      localStorage.removeItem('sky-quality');
+    }
+  };
+
+  document.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-sky-action]');
+    if (!btn || (btn as HTMLButtonElement).disabled) return;
+    switch (btn.dataset.skyAction) {
+      case 'theme': {
+        const next = isDark() ? 'light' : 'dark';
+        if (next === 'light') setStars(false); // the sky only exists in the dark
+        setTheme(next);
+        break;
+      }
+      case 'stars':
+        if (starsOn()) {
+          setStars(false);
+        } else {
+          setStars(true);
+          setTheme('dark');
+        }
+        break;
+      case 'quality':
+        setQuality(root.getAttribute('data-sky-quality') !== 'high');
+        break;
+    }
+    sync();
+  });
+
+  darkMq.addEventListener('change', sync);
+  sync();
+</script>

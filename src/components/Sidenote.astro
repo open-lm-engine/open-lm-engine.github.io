@@ -1,0 +1,22 @@
+---
+// A short aside that isn't a citation, so it skips the footnote/References
+// pipeline (rehype-citation-style.mjs sweeps every `[^key]` into References —
+// there's no way to opt one out short of not using footnote syntax at all).
+// Default: an inline parenthetical right after the marker, always visible, no
+// JS. At the same width the left TOC rail appears (see .article-toc in
+// global.css), it instead floats into the right margin as its own small
+// column — labeled "Note" the way the TOC labels itself, same left-border
+// convention as the TOC's link items.
+interface Props {
+  mark?: string;
+}
+const { mark = '*' } = Astro.props;
+---
+
+<span class="sidenote-wrap">
+  <sup class="sidenote-marker" aria-hidden="true">{mark}</sup>
+  <span class="sidenote">
+    <span class="sidenote-label">Note</span>
+    <slot />
+  </span>
+</span>

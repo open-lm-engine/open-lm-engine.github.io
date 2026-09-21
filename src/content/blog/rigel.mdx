@@ -1,0 +1,316 @@
+---
+title: 'Rigel Base: A Small Hybrid Mamba-2 MoE Base Model'
+description: 'Introducing Rigel, a 2.3B total / 360M active parameter mixture-of-experts base model.'
+heroImage: '../../assets/rigel/rigel.png'
+authors:
+  - name: 'Mayank Mishra'
+    url: https://mayank31398.github.io/
+    affiliations: [1]
+  - name: 'Bharat Runwal'
+    url: https://bharat-runwal.github.io/
+    affiliations: [2]
+  - name: 'Ion Stoica'
+    url: 'https://people.eecs.berkeley.edu/~istoica/'
+    affiliations: [1]
+  - name: 'Tri Dao'
+    url: 'https://tridao.me/'
+    affiliations: [3, 4]
+    equalAdvising: true
+  - name: 'Joseph E. Gonzalez'
+    url: https://people.eecs.berkeley.edu/~jegonzal/
+    affiliations: [1]
+    equalAdvising: true
+affiliations:
+  - 'UC Berkeley'
+  - 'MIT-IBM Watson Lab'
+  - 'Princeton University'
+  - 'Together AI'
+citationStyle: 'numeric'
+bibliography: 'references.bib'
+sky: true
+skyPrompt: 'Learn about Rigel amongst the Stars'
+draft: false
+---
+
+import { Image } from 'astro:assets';
+import Figure from '../../components/Figure.astro';
+import TikzFigure from '../../components/TikzFigure.astro';
+import Sidenote from '../../components/Sidenote.astro';
+import tikzSource from '../../assets/mamba-2.tikz?raw';
+import ArchLossChart from '../../components/figures/ArchLossChart.tsx';
+import LrChart from '../../components/figures/LrChart.tsx';
+import LmLossChart from '../../components/figures/LmLossChart.tsx';
+import LongLmLossChart from '../../components/figures/LongLmLossChart.tsx';
+import LongLrChart from '../../components/figures/LongLrChart.tsx';
+import kekwImg from '../../assets/rigel/kekw.png';
+import { DataCurriculumCharts, EvalAccuracyChart, EvalAccuracy5ShotChart, WikitextBpbChart } from '../../components/figures/RigelCharts.tsx';
+import FlopsZoom from '../../components/figures/FlopsZoom.tsx';
+import Algorithm from '../../components/Algorithm.astro';
+import ringAttentionTikz from '../../assets/rigel/ring-attention.tikz?raw';
+import mamba2CpForwardAlgo from '../../assets/rigel/mamba2-cp-forward.algo.tex?raw';
+
+export const MODEL_NAME = 'Rigel';
+
+# Introduction
+We release {MODEL_NAME}: a 2.3B-total, 360M-active-parameter (260M active non-embedding parameter) hybrid Mamba-2[^mamba2] + attention[^attention] mixture-of-experts[^moe] base model.
+Three of every four sequence-mixer layers are Mamba-2 state-space layers, carrying a fixed-size recurrent state regardless of context length; the fourth is grouped-query attention[^gqa] with a group size of 4 (query to key-value head ratio) and exclusive self attention (XSA)[^xsa].
+The model is pretrained at a 4,096-token context length, then extended to a 294,912 token context with 4,096-token sliding window attention towards the end of training.
+
+{MODEL_NAME} was trained on five different kinds of accelerators: H100s, A100s (both 40GB and 80GB), V100s (32GB), and TPU v5p and v6e.
+We had no dedicated cluster and hence, we picked chips up as they became available and moved the run between them.
+
+{MODEL_NAME} also used $5.4 \times 10^{21}$ non-embedding pretraining FLOPs, about $117\times$ fewer than the Llama-3.2 1B and 3B models (we assume Llama-3.1 8B's training compute and assume distillation and pruning are free and cost no FLOPs), $53\times$ fewer than Granite-4.2 3B, and $35\times$ fewer than SmolLM-3 3B, while landing within a few points of those dense baselines on zero-shot averages and above Llama-3.2-1B.
+
+{MODEL_NAME} therefore targets a different point on the scaling curve than trillion-parameter frontier models<Sidenote>partly because we couldn't get compute to train a trillion parameter model</Sidenote>: a base model small enough to pretrain, ablate, and iterate on with a modest and changing pool of hardware, at a total-parameter budget measured in billions and an active-parameter budget within reach of a single accelerator.
+This blog gives a brief overview of {MODEL_NAME}: the architecture, the six-phase pretraining mixture, the multi-chip clusters and the kernels and context-parallel machinery it needed, the optimization recipe, and how the result compares to models trained with far more compute.
+
+The following principles guided this project from the start:
+
+1. **Work with the compute you have.** With no dedicated cluster, we treated whatever hardware became available as an opportunity rather than a compromise.
+2. **FLOPs matter more than the logo on the chip.** We tried not to be attached to any one vendor or generation: an H100, an A100, a V100 and a TPU all do useful work.
+
+# Architecture
+For the feed-forward blocks, we use MoE layers since they disentangle training FLOPs from the total parameter count of the model.
+For the sequence mixer blocks, we adopted a hybrid design: GQA[^gqa] with sliding window length of 4,096 tokens with Mamba-2[^mamba2] layers. While we wanted to use Gated DeltaNet[^gdn] or Kimi Delta Attention[^kda], writing forward and backward kernels for V100s and TPUs for GDN layers seemed like a much bigger undertaking. We hope to adopt GDN[^gdn] (or KDA[^kda]) in our next models.
+#### MoE
+Two axes have driven recent language-model efficiency work.
+The first decouples a model's capacity from the FLOPs required to train the model: sparse mixture-of-experts routing[^moe] lets total parameters (and consequently model capacity) grow far faster than the active parameters.
+This allows training much larger models with a FLOPs budget that is governed by only the active parameters of the model rather than the total model parameters.
+Recent frontier LLMs like DeepSeek[^deepseek41][^deepseekmoe], Kimi[^kimi], Qwen[^qwen] have further pushed towards increasingly fine-grained sparser MoE layers and towards hybrid recurrent/attention based sequence mixing blocks.
+
+Both the Mamba-2[^mamba2] and the attention[^attention] layers share the same feed-forward block: a fine-grained MoE with 128 SwiGLU[^swiglu] experts, an intermediate size of just 128 per expert, and top-2 routing.
+We use an auxilliary load-balancing loss for training the model.
+We don't use any shared experts purely to save FLOPs.
+Expert weights are stored in an interleaved layout for the fused `SonicMoE`[^sonicmoe]<Sidenote>More about infra [later](#kernels) 🙂</Sidenote>.
+
+We use tied word-embeddings for our model to keep the parameter count low.
+Every non-MoE component is dense; while we experimented with MoA (Mixture of Attention)[^moa], we found that our kernel was not optimized enough due to a lack of enough fusion at the time of starting model training (and simply running full dense GQA[^gqa] was faster on both H100s and A100s) and hence we chose to stick to using dense attention for our model.
+An efficient MoA kernel could have enabled longer training than our current run 🫠.
+We aim to make MoA kernels faster for our future runs and make the model bigger for the same FLOPs by making the attention[^attention] layers (and possibly Mamba-2[^mamba2] layers) sparse.
+
+#### Mamba-2
+<Figure id="fig-layer">
+  <TikzFigure
+    source={tikzSource}
+    alt="Architecture diagram. Left: two stacked residual layers — a Mamba-2 layer (repeated three times) followed by an Attention layer — each RMSNorm'd, passed through its sequence mixer, added back via a residual connection, then RMSNorm'd again, passed through a MoE, and added back via a second residual connection. Top right: the internal anatomy of the attention layer — separate q, k, v linear projections feed a causal GQA attention block, whose output has its own-value component projected out (the XSA correction) before a final linear projection. Bottom right: the internal anatomy of the Mamba-2 layer — three linear projections feed a stacked causal Conv1D for q, k, and v plus separate f and g gates; q, k, v, and f feed the Mamba-2 recurrence, whose output is gated by g, RMSNorm'd, and linearly projected out."
+  />
+  <span slot="caption">Left: the residual stream alternates three Mamba-2 layers for every one attention layer, each interleaved with a MoE. Bottom right: inside the Mamba-2 layer, $q_t, k_t, v_t$ each get their own depthwise causal convolution and activation before feeding the Mamba-2 recurrence, whose output is gated by $g_t$, normalized and projected out. Top right: inside the attention layer, $q_t, k_t, v_t$ feed causal GQA attention to produce $z_t$, which is then corrected by projecting out its own $v_t$ component before the output projection — the XSA[^xsa] step detailed below.</span>
+</Figure>
+
+Mamba-2[^mamba2] has been recently proposed as a reformulation of the selective state-space model introduced by Mamba[^mamba1], expressed as an instance of structured state-space duality (SSD).
+It casts the SSM recurrence as a form of linear attention with a data-dependent, scalar state-transition gate.
+Unlike softmax attention[^attention], whose KV-cache and per-token compute both grow with context length, a Mamba-2[^mamba2] layer carries a fixed-size recurrent state regardless of how many tokens came before.
+While this makes Mamba-2 (or any other linear attention layers) efficient at inference time, it comes at the cost of the precise per-token retrieval where attention still does best.
+{MODEL_NAME} uses Mamba-2[^mamba2] for 30 of its 40 sequence-mixing layers, interleaved with grouped-query attention[^gqa] every fourth layer to recover that retrieval capability where it matters most.
+
+Mamba-2[^mamba2] admits the following recurrent form:
+$$
+\begin{aligned}
+\mathbf{H}_t &= f_t\,\mathbf{H}_{t-1} + k_t v_t^\top \\
+y_t &= \mathbf{H}_t^\top q_t
+\end{aligned}
+$$
+where $f_t \in \mathbb{R}, k_t \in \mathbb{R}^{K \times 1}, v_t \in \mathbb{R}^{V \times 1}, \textbf{H}_t \in \mathbb{R}^{K \times V}$<Sidenote>Note that $k_t$ here has been assumed to be discretized; we omit the discretization term here for simpler notation.</Sidenote>.
+
+While the recurrent form is extremely useful for $O(1)$ inference, it cannot use matrix multiply units: tensor cores on NVIDIA GPUs or MXUs on TPUs[^tpu2][^tpu4].
+Each step is a sequential rank-one update $k_t v_t^\top$ on $\mathbf{H}_t$, not the large matrix multiply that AI accelerators need to reach good utilization.
+So training with the recurrent form directly is inefficient.
+
+Mamba-2[^mamba2] like Linear Attention[^linearattention] admits a chunkwise-parallel form[^gla] that can make efficient use of these matrix multiply units.
+The chunkwise-parallel form can be derived by running the recurrence over blocks of $C$ contiguous tokens: the *inter*-chunk term stays a genuine sequential recurrence over the chunk-boundary state $\mathbf{H}_{[i]}$, but the *intra*-chunk term becomes a single causally masked matrix multiply per chunk so the sequential shrinks from $T$ individual tokens to $\frac{T}{C}$ chunks, and the bulk of the compute runs as large matrix multiplies that the tensor cores and MXUs are built for.
+
+Mamba-2's[^mamba2] chunkwise-parallel form can be written as:
+$$
+\begin{aligned}
+\mathbf{H}_{(i + 1)C} &= \frac{F_{(i + 1)C}}{F_{iC}} \mathbf{H}_{iC} + \mathbf{K}_{[i]}^\top \mathrm{diag}\left(\frac{F_{(i+1)C}}{F_{[i]}}\right) \mathbf{V}_{[i]} \\
+\mathbf{Y}_{[i]} &= \mathrm{diag}\left(\frac{F_{[i]}}{F_{iC}}\right)\mathbf{Q}_{[i]} \mathbf{H}_{iC} + \left[ \mathrm{diag}(F_{[i]}) \mathbf{Q}_{[i]} \mathbf{K}_{[i]}^\top \mathrm{diag}(F_{[i]}^{-1}) \odot \mathbf{M} \right] \mathbf{V}_{[i]}
+\end{aligned}
+$$
+where $C$ is the chunk size and $F_t = \prod_{s \le t} f_s$ denotes the scalar prefix decay. Note that we use the notation $[i]$ to denoted the $i^{th}$ chunk.
+
+#### Exclusive Self Attention (XSA)
+{MODEL_NAME}'s attention layers also use exclusive self attention (XSA)[^xsa], a two-line modification to standard causal self-attention.
+XSA[^xsa] observes an *attention similarity bias* in trained Transformers: a token's attention output $z_i = \sum_{j \le i} a_{i,j} v_j$ tends to have high cosine similarity with its own value vector $v_i$, i.e. the attention block spends capacity re-deriving a point-wise feature the residual path's MLP could already supply.
+XSA removes exactly that component by projecting it out of the attention output:
+$$
+y_i = z_i - (z_i^\top v_i) \frac{v_i}{\lVert v_i \rVert_2^2}
+$$
+an orthogonal rejection of $z_i$ against $v_i$, implementable as a two-line addition after the usual softmax-attention output.
+XSA[^xsa] reports gains that grow with both model size and context length, and frames XSA as an implicit attention sink[^attention-sink].
+{MODEL_NAME} enables it on every GQA[^gqa] layer.
+
+<Figure id="fig-xsa-loss">
+  <ArchLossChart client:visible />
+  <span slot="caption">We ablated Grouped Query Attention (GQA)[^gqa], gated attention[^qwen-gated], Exclusive Self Attention (XSA)[^xsa] and combining Qwen's gated attention[^qwen-gated] with XSA. We find that XSA overall performs the best with XSA and gated attention being close in language modeling loss. Note that these ablations are done in the same hybrid Mamba-2[^mamba2] MoE setting with the only changes between the runs being the attention layers. We keep the total parameters across all runs fixed. While both XSA and Gated Attention + XSA track closely, we choose XSA.</span>
+</Figure>
+
+Following Kimi[^kimi] and our prior experience on training Granite models[^granite], we use no positional embeddings (NoPE)[^nope] which have been shown to be effective in hybrid models since the recurrent layers (Mamba-2[^mamba2] in our case) already carry positional information.
+We choose to use 40 layers which is unusually high for a 2.3B model.
+While a wider model would have been more efficient to train since AI accelerators (especially TPUs[^tpu2][^tpu4]) prefer larger matrix multiplies, we choose a deeper model purely for better downstream performance.
+We summarize our architecture in the following table:
+
+<div class="table-scroll">
+| Property | Value |
+|---|---|
+| Sequence mixers | $30\times$ Mamba-2[^mamba2], $10\times$ GQA-XSA[^gqa][^xsa] attention (3:1, repeating every 4th layer) |
+| Hidden size | 1,024 |
+| MLP (every layer) | MoE, 128 experts, top-2, no shared expert |
+| Vocab size | 100,352 |
+| Position embedding | NoPE |
+| Initialization / width scaling | $\mu$P[^mup] |
+| Layers | 40 |
+</div>
+
+# Pretraining Data
+{MODEL_NAME} is pretrained in 6 different phases using the following data mixtures:
+1. an initial web data and code heavy launch mix
+2. a swap towards STEM-heavy reasoning data
+3. a return to web text with a heavier math weight
+4. [Nemotron-CC v2](https://huggingface.co/datasets/nvidia/Nemotron-CC-v2)[^nemotron-cc] is introduced due to its higher quality
+5. increasing the ratio of datasets of higher quality with focus on [finepdfs](https://huggingface.co/datasets/HuggingFaceFW/finepdfs)[^finepdfs], [Nemotron-CC v2](https://huggingface.co/datasets/nvidia/Nemotron-CC-v2)[^nemotron-cc] etc.
+6. a long-context phase where long chain-of-thought reasoning QA displaces nearly everything else. 
+<Figure id="fig-data-curriculum" wide>
+  <DataCurriculumCharts client:visible />
+  <span slot="caption">{MODEL_NAME}'s different pretraining data-mixture phases.</span>
+</Figure>
+
+# Training Cluster/Infrastructure <Image src={kekwImg} alt="Kekw laughing-face meme." width={50} height={50} style="vertical-align: middle; position: relative; top: -6px;" />
+#### Cluster
+We trained {MODEL_NAME} on H100s, A100s (both 40GB and 80GB), V100s (32GB), TPU v5p(s), and TPU v6e(s), with most of the time split between TPU v6e and A100s.
+We used the [lm-engine](https://github.com/open-lm-engine/lm-engine) codebase for training {MODEL_NAME} due its compatibility with both NVIDIA GPUs and TPUs.<Sidenote>The full TPU code for Mamba-2[^mamba2] will be open sourced in the coming weeks with the report about lm-engine codebase coming soon.</Sidenote>
+
+#### Kernels
+For training our models on H100 GPUs, we use the SonicMoE[^sonicmoe] for efficient MoE training and ScatterMoE[^scattermoe] on A100 GPUs. We further develop kernels for use on V100s.
+
+For TPUs[^tpu2][^tpu4], we used [torch-xla](https://github.com/pytorch/xla) instead of JAX.
+We chose to use torch-xla just for having a unified model code to avoid any potential incorrectness in the model code across a PyTorch and a JAX codebase.
+Although, this doesn't guarantee an op-level precision match across hardwares, we found our training curves to be nearly perfectly identical to not care about this at the 2.3B parameter scale.
+This was also a good exercise for us to write Pallas kernels for TPUs for Mamba-2[^mamba2] which we will open source soon.
+
+We used mixed-precision training[^mixed-precision] in BF16[^bf16] for {MODEL_NAME} on A100, H100 and TPU with any all-reduce and reduce-scatter operations in FP32 precision with the exception of V100 GPUs.
+V100s don't support the BF16 precision format and hence we used FP16 with loss scaling to avoid small gradients becoming zeros.
+We also used FP16 reduce-scatter on V100s rather than FP32 for slightly more training throughput.
+
+Our models were trained purely with DDP[^ddp] on H100s and A100s with 80GB memory and HSDP-2 on V100s 32GBs and A100 40GBs.
+We used purely FSDP (Fully Sharded Data Parallel)[^zero][^fsdp] on TPUs since we were not able to get HSDP (Hybrid Sharded Data Parallel) working with torch-xla on TPUs 🥲.
+
+We used efficient kernels wherever applicable: [CODA kernels](https://github.com/open-lm-engine/coda-kernels)[^coda]<Sidenote>The CODA project has since been added to the lm-engine org! Thanks to [Han Guo](http://han-guo.info/).</Sidenote> for H100 GPUs, [quack kernels](https://github.com/Dao-AILab/quack), [causal-conv1d](https://github.com/Dao-AILab/causal-conv1d), [mamba-ssm](https://github.com/state-spaces/mamba) etc. We also relied on the XLA compiler heavily to generate efficient TPU kernels and `torch.compile` for GPU kernels.
+
+All our long-context training was conducted on H100 GPUs with context parallelism (CP)[^ring-attention][^ulysses] communication within a server node.
+
+#### Context parallelism for attention
+For full causal attention, ring attention[^ring-attention] partitions the sequence across $N_\textrm{CP}$ ranks and exchanges KV blocks around the ring during the forward computation. Causal attention is computationally asymmetric: positions near the end of a sequence attend to more tokens and incur higher compute than positions near the beginning, so naively dividing the sequence into $N_\textrm{CP}$ contiguous chunks yields unbalanced GPU utilization: early ranks sit idle while late ranks are compute-bound. The fix is a load balancer that splits the sequence into $2N_\textrm{CP}$ chunks, where rank $i$ receives the $i^\textrm{th}$ chunk and the $(N_\textrm{CP}-1-i)^\textrm{th}$ chunk: one compute-light (early) segment and one compute-heavy (late) segment per rank, which balances FLOPs perfectly across all CP ranks.
+
+<Figure id="fig-ring-attention" wide>
+  <TikzFigure source={ringAttentionTikz} alt="Ring attention load balancing across four context-parallel ranks. Left: full causal attention with naive contiguous chunking assigns heavier attention compute to later ranks. Middle: zigzag ring attention pairs each rank's head chunk with a tail chunk to balance FLOPs across N_CP ranks. Right: causal sliding window attention with naive contiguous chunking is already near-balanced, since every rank past the first does the same window-capped amount of work." />
+  <span slot="caption">Ring attention load balancing across $N_\textrm{CP}$ ranks. For full causal attention, naive contiguous chunking (left) assigns heavier attention compute to later ranks, while zigzag ring attention (middle) pairs each rank's head chunk with a tail chunk to balance FLOPs perfectly. For causal sliding window attention (right), naive contiguous chunking is already near-balanced: every rank past the first does the same window-capped amount of work, so no zigzag reshuffling is needed.</span>
+</Figure>
+
+However, sliding window attention (SWA) needs none of this reshuffling.
+Since each query attends to at most $W$ (window size) tokens regardless of position, per-rank compute is already near-uniform under a naive contiguous split: only the ranks whose queries sit within the first $W$ tokens of the sequence see truncated windows and do less work.
+Formally, with a contiguous split every rank owns $L = S / N_\textrm{CP}$ consecutive tokens, and a query at position $t$ attends to $\min(t + 1, W)$ key-value pairs, so a (0-indexed) rank $r$ carries the full, saturated load of $LW$ once its first token has a complete window behind it, i.e. once
+$$
+r \ge \frac{N_\textrm{CP} W}{S},
+$$
+where $W$ is the sliding window size and $S$ is the full context length. Every rank from $\lceil N_\textrm{CP} W / S \rceil$ onward therefore does identical work; only the ranks before it are lighter, and the sole light rank in the right panel of the figure above is the $r = 0$ case. For {MODEL_NAME}, $W = 4{,}096$, $S = 294{,}912$ and $N_\textrm{CP} = 8$ within a node, so $N_\textrm{CP} W / S = 1/9$: rank 0 is the only under-loaded rank, and its deficit is roughly $W^2/2$ out of $LW$, i.e. $W / 2L \approx 5.6\%$ below the others. Hence, we adopt the naive contiguous chunking for sequences since {MODEL_NAME} uses SWA.
+
+#### Context parallelism for Mamba-2
+
+Mamba-2 needs no ring exchange of per-token keys and values under CP at all.
+Recall the chunkwise-parallel recurrence from the Architecture section, $\mathbf{H}_{(i+1)C} = A_i \mathbf{H}_{iC} + \mathbf{B}_{[i]}$ with $A_i = F_{(i+1)C}/F_{iC}$ and $\mathbf{B}_{[i]} = \mathbf{K}_{[i]}^\top \mathrm{diag}(F_{(i+1)C}/F_{[i]})\mathbf{V}_{[i]}$.
+
+Note that both $A_i$ and $\mathbf{B}_{[i]}$ can be computed independently on each accelerator, since there's no inter-chunk dependence in their computation.
+Once every rank has done this local computation, an all-gather of just these small $(A_i, \mathbf{B}_{[i]})$ pairs suffices to compute the full Mamba-2 recurrence outputs:
+
+<Algorithm number={1} source={mamba2CpForwardAlgo} />
+
+The correction loop in step 4 is just the recurrence $\mathbf{H}_{(i+1)C} = A_i \mathbf{H}_{iC} + \mathbf{B}_{[i]}$ unrolled across ranks: rank $i$ recovers the true starting state for its own chunk by chaining the all-gathered $A_j, \mathbf{B}_{[j]}$ sequentially across every preceding rank $j < i$, starting from the shared base state $\mathbf{H}_0$.
+The shared base state is already resident on every rank and needs no communication at all.
+Because this correction is a recurrence over only $N_\textrm{CP}$ small per-rank states rather than over the sequence itself, its cost is small compared to the local SSD computations.
+Similarly a simple state passing can be used to implement context parallelism for causal convolution as well.
+And unlike attention's triangular compute imbalance, per-token SSD compute is chunk-local and independent of position, so a naive contiguous split already balances (approximately) load across ranks for {MODEL_NAME}'s 30 Mamba-2 layers.
+
+# Model Training
+We pretrain {MODEL_NAME} with 4,096 context length with a batch size of 1,152 sequences per training step (an effective global batch size of 4.7M tokens). We keep the token count per batch constant during the entire course of training. During the long-context extension phase, we adjusted the batch size to 16 sequences with 294,912 tokens each.
+
+We used $\mu$P[^mup] for hyper-parameter transfer across model widths.
+While we wanted to use the Hyperball optimizer[^hyperball] for training our models, we didn't have the compute budget to answer questions like:
+1. should we split the attention heads for hyperball?
+2. should we split the gate and up projection matrices for hyperball?
+3. should we treat each expert independently for hyperball?
+
+While we believe the [Marin project](https://marin.community/) recipes have ablated this at scale, we didn't want to risk our training run since we haven't tested these on our training stack yet.
+
+<Figure id="fig-lm-loss">
+  <LmLossChart client:visible />
+  <span slot="caption">{MODEL_NAME}'s logged training loss across the full run, excluding the long-context phase. Colour denotes the cluster (accelerator type and chip count) each stretch of the run was trained on. The discontinuities are where we change the sampling proportions.</span>
+</Figure>
+
+We finally went with AdamW[^adam][^weight-decay] optimizer (we weren't able to ablate Muon[^muon][^muon-kimi] with Mamba-2[^mamba2] layers due to a lack of compute) with a learning rate schedule that follows power law[^power] followed by linear decay[^linear].
+
+Assuming $s$ as the current training steps, $S_w = 5{,}000$ as the warmup steps and $\eta_{\max} = 0.01$ as the maximum learning rate, our LR schedule is given as:
+$$
+\eta(s) =
+\begin{cases}
+\eta_{\max} \cdot \dfrac{s}{S_w}, & 0 \le s \le S_w \\[6pt]
+\min\{ \eta_{\max}, 1.819\, s^{-0.51} \}, & S_w \le s \le S_d \\[6pt]
+\frac{1.819\, S_d^{−0.51}}{S_t - S_d} (S_t - s), & S_d \le s \le S_t
+\end{cases}
+$$
+
+<Figure id="fig-scheduler">
+  <LrChart client:visible />
+  <span slot="caption">{MODEL_NAME}'s learning rate across the first 5 different phases of pretraining: linear warmup to the peak LR of 0.01, constant phase (to cap the learning rate), power law decay followed by a linear decay towards the end. The colours denote the cluster's accelerator type and accelerator count.</span>
+</Figure>
+
+#### Long-context extension
+The sixth and final phase extends the context from 4,096 to 294,912 tokens with 4,096-token sliding window attention, entirely on H100s using context parallelism[^ring-attention]. It runs for 25,000 steps and about 118B tokens, on a fresh, much smaller learning-rate schedule: a 2,500 step linear warmup to a peak of $5 \times 10^{-5}$ ($200\times$ below the main run's peak) followed by a linear decay to zero.
+
+<Figure id="fig-long-lm-loss">
+  <LongLmLossChart client:visible />
+  <span slot="caption">{MODEL_NAME}'s training loss over the long-context extension phase, at 294,912 tokens per sequence.</span>
+</Figure>
+
+<Figure id="fig-long-scheduler">
+  <LongLrChart client:visible />
+  <span slot="caption">Learning rate over the long-context extension phase: a linear warmup over the first 2,500 steps to $5 \times 10^{-5}$, then a linear decay to zero.</span>
+</Figure>
+
+# Evaluation
+
+Zero-shot accuracy for {MODEL_NAME} and similarly sized open source dense models [Granite-4.2-3B](https://huggingface.co/ibm-granite), [Granite-4.2-8B](https://huggingface.co/ibm-granite), and [Llama-3.2-1B](https://huggingface.co/meta-llama/Llama-3.2-1B) across a standard suite of common-sense, reading-comprehension, and knowledge benchmarks via [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness):
+
+<Figure id="fig-eval-accuracy" wide>
+  <EvalAccuracyChart client:visible />
+  <span slot="caption">Zero-shot accuracy (%) of {MODEL_NAME}'s base checkpoints against Granite-4.2 3B and Llama-3.2 1B/3B on common-sense reasoning and knowledge benchmarks.</span>
+</Figure>
+
+{MODEL_NAME} reaches these numbers on a fraction of the pretraining compute its baselines used:
+
+<Figure id="fig-eval-flops">
+  <FlopsZoom client:visible />
+  <span slot="caption">Total non-embedding FLOPs used for pretraining: {MODEL_NAME} vs. [Granite-4.2 3B](https://huggingface.co/ibm-granite/granite-4.2-3b), [SmolLM-3 3B](https://huggingface.co/HuggingFaceTB/SmolLM3-3B), and [Llama-3.2 1B/3B](https://huggingface.co/collections/meta-llama/llama-32) (both the two Llama models share a training run from and are distilled from Llama-3.1 8B.). Since Llama-3.2 doesn't report the training FLOPs for distillation/pruning from their 8B model, we only report the 8B FLOPs assuming the distillation is free.</span>
+</Figure>
+
+# Conclusion
+{MODEL_NAME} is a 2.3B-total, 360M-active hybrid built from a fine-grained 128-expert, top-2 MoE with 40-layers of which 30 layers are Mamba-2[^mamba2] and 10 are Grouped Query Attention(GQA)[^gqa] with Exclusive Self Attention (XSA)[^xsa] and sliding window attention (SWA).
+{MODEL_NAME} keeps the inference state size bounded (constant state size for both Mamba-2 and sliding window attention).
+We further extend the context length of {MODEL_NAME} from its 4,096 tokens (the base pretraining length) to a 294,912 token context.
+
+The {MODEL_NAME} run moved across H100s, A100s, V100s, and TPU v5p and v6e as we got access to these chips on one codebase, with kernels written or adapted for every one of those chips, FP16 loss scaling where BF16 wasn't available.
+
+{MODEL_NAME} was also trained with far lesser compute compared to Granite-4.2 3B, Llama-3.2 models while achieving almost the same performance across commonsense reasoning benchmarks.
+
+What's next: instruction-tuned variants, further baselines at similar active-parameter budgets, and the open-source release of the TPU kernels for Mamba-2[^mamba2] and Gated Linear Attention[^gla] and their integration into the [lm-engine training stack](https://github.com/open-lm-engine/lm-engine) that made the multi-chip run possible.
+
+# Citation
+If you'd like to cite this work:
+
+```bibtex
+@misc{mishra2026rigel,
+  title  = {Rigel Base: A Small Hybrid Mamba-2 MoE Base Model},
+  author = {Mishra, Mayank and Runwal, Bharat and Stoica, Ion and Dao, Tri and Gonzalez, Joseph E.},
+  year   = {2026},
+  url    = {https://example.com/blog/rigel}
+}
+```

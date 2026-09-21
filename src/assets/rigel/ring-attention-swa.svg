@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="526" viewBox="0 58 960 526" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .idx   { font-size: 10px; fill: #888; }
+      .rlab  { font-size: 10.5px; fill: #555; }
+      .axis  { font-size: 12px; fill: #444; }
+      .barval{ font-size: 11px; font-weight: 700; fill: #222; }
+      .barlab{ font-size: 10.5px; fill: #444; }
+      .capt  { font-size: 15px; font-weight: 700; }
+      .sub   { font-size: 12px; fill: #555; }
+      .leg   { font-size: 12px; fill: #333; }
+      .note  { font-size: 12px; fill: #333; }
+      .cap2  { font-size: 10px; fill: #888; }
+    </style>
+  </defs>
+
+  <!-- ============================================================= -->
+  <!-- (a)  FULL CAUSAL  (no window) — triangular, growing load      -->
+  <!-- 4 GPUs, 2 query chunks each (contiguous) — colored by GPU     -->
+  <!-- ============================================================= -->
+
+  <!-- full squares j < r, colored by row's GPU -->
+  <g>
+    <rect x="95"  y="112" width="32" height="32" fill="#4E79A7"/>
+    <rect x="95"  y="144" width="32" height="32" fill="#F28E2B"/><rect x="127" y="144" width="32" height="32" fill="#F28E2B"/>
+    <rect x="95"  y="176" width="32" height="32" fill="#F28E2B"/><rect x="127" y="176" width="32" height="32" fill="#F28E2B"/><rect x="159" y="176" width="32" height="32" fill="#F28E2B"/>
+    <rect x="95"  y="208" width="32" height="32" fill="#59A14F"/><rect x="127" y="208" width="32" height="32" fill="#59A14F"/><rect x="159" y="208" width="32" height="32" fill="#59A14F"/><rect x="191" y="208" width="32" height="32" fill="#59A14F"/>
+    <rect x="95"  y="240" width="32" height="32" fill="#59A14F"/><rect x="127" y="240" width="32" height="32" fill="#59A14F"/><rect x="159" y="240" width="32" height="32" fill="#59A14F"/><rect x="191" y="240" width="32" height="32" fill="#59A14F"/><rect x="223" y="240" width="32" height="32" fill="#59A14F"/>
+    <rect x="95"  y="272" width="32" height="32" fill="#E15759"/><rect x="127" y="272" width="32" height="32" fill="#E15759"/><rect x="159" y="272" width="32" height="32" fill="#E15759"/><rect x="191" y="272" width="32" height="32" fill="#E15759"/><rect x="223" y="272" width="32" height="32" fill="#E15759"/><rect x="255" y="272" width="32" height="32" fill="#E15759"/>
+    <rect x="95"  y="304" width="32" height="32" fill="#E15759"/><rect x="127" y="304" width="32" height="32" fill="#E15759"/><rect x="159" y="304" width="32" height="32" fill="#E15759"/><rect x="191" y="304" width="32" height="32" fill="#E15759"/><rect x="223" y="304" width="32" height="32" fill="#E15759"/><rect x="255" y="304" width="32" height="32" fill="#E15759"/><rect x="287" y="304" width="32" height="32" fill="#E15759"/>
+  </g>
+  <!-- causal (lower-left) diagonal triangles j == r -->
+  <polygon points="95,80 95,112 127,112"    fill="#4E79A7"/>
+  <polygon points="127,112 127,144 159,144" fill="#4E79A7"/>
+  <polygon points="159,144 159,176 191,176" fill="#F28E2B"/>
+  <polygon points="191,176 191,208 223,208" fill="#F28E2B"/>
+  <polygon points="223,208 223,240 255,240" fill="#59A14F"/>
+  <polygon points="255,240 255,272 287,272" fill="#59A14F"/>
+  <polygon points="287,272 287,304 319,304" fill="#E15759"/>
+  <polygon points="319,304 319,336 351,336" fill="#E15759"/>
+  <!-- grid + border -->
+  <g stroke="#bdbdbd" stroke-width="0.8">
+    <line x1="95" y1="80" x2="95" y2="336"/><line x1="127" y1="80" x2="127" y2="336"/><line x1="159" y1="80" x2="159" y2="336"/>
+    <line x1="191" y1="80" x2="191" y2="336"/><line x1="223" y1="80" x2="223" y2="336"/><line x1="255" y1="80" x2="255" y2="336"/>
+    <line x1="287" y1="80" x2="287" y2="336"/><line x1="319" y1="80" x2="319" y2="336"/><line x1="351" y1="80" x2="351" y2="336"/>
+    <line x1="95" y1="80" x2="351" y2="80"/><line x1="95" y1="112" x2="351" y2="112"/><line x1="95" y1="144" x2="351" y2="144"/>
+    <line x1="95" y1="176" x2="351" y2="176"/><line x1="95" y1="208" x2="351" y2="208"/><line x1="95" y1="240" x2="351" y2="240"/>
+    <line x1="95" y1="272" x2="351" y2="272"/><line x1="95" y1="304" x2="351" y2="304"/><line x1="95" y1="336" x2="351" y2="336"/>
+  </g>
+  <rect x="95" y="80" width="256" height="256" fill="none" stroke="#444" stroke-width="1.4"/>
+  <!-- axes -->
+  <text x="223" y="353" class="axis" text-anchor="middle">key-value chunk &#8594;</text>
+  <text x="70" y="208" class="axis" text-anchor="middle" transform="rotate(-90 70 208)">&#8592; query chunk</text>
+  <g class="idx" text-anchor="middle">
+    <text x="111" y="76">0</text><text x="143" y="76">1</text><text x="175" y="76">2</text><text x="207" y="76">3</text><text x="239" y="76">4</text><text x="271" y="76">5</text><text x="303" y="76">6</text><text x="335" y="76">7</text>
+  </g>
+
+  <!-- load bars (a): 3,7,11,15 per GPU (scale 15 -> 80px, baseline 474) -->
+  <line x1="95" y1="474" x2="351" y2="474" stroke="#444" stroke-width="1.1"/>
+  <rect x="110" y="458"   width="34" height="16"   fill="#4E79A7"/>
+  <rect x="174" y="436.7" width="34" height="37.3" fill="#F28E2B"/>
+  <rect x="238" y="415.3" width="34" height="58.7" fill="#59A14F"/>
+  <rect x="302" y="394"   width="34" height="80"   fill="#E15759"/>
+  <g class="barval" text-anchor="middle">
+    <text x="127" y="452">3</text><text x="191" y="431">7</text><text x="255" y="409">11</text><text x="319" y="388">15</text>
+  </g>
+  <g class="barlab" text-anchor="middle">
+    <text x="127" y="488">GPU0</text><text x="191" y="488">GPU1</text><text x="255" y="488">GPU2</text><text x="319" y="488">GPU3</text>
+  </g>
+  <text x="223" y="514" class="capt" fill="#b1342f" text-anchor="middle">unbalanced work</text>
+
+  <!-- ============================================================= -->
+  <!-- (b)  CAUSAL + SLIDING WINDOW — fixed band, capped load        -->
+  <!-- 4 GPUs, 2 query chunks each; colored by GPU                    -->
+  <!-- ============================================================= -->
+
+  <!-- sliding-window band: one clean parallelogram per row (GPU-colored). -->
+  <!-- right edge = causal diagonal, left edge = parallel window cutoff;     -->
+  <!-- grid lines (drawn after) split each row into causal / full / partial. -->
+  <polygon points="590,80 590,112 622,112"                fill="#4E79A7"/>
+  <polygon points="590,112 622,112 654,144 602,144 590,132" fill="#4E79A7"/>
+  <polygon points="602,144 654,144 686,176 634,176"       fill="#F28E2B"/>
+  <polygon points="634,176 686,176 718,208 666,208"       fill="#F28E2B"/>
+  <polygon points="666,208 718,208 750,240 698,240"       fill="#59A14F"/>
+  <polygon points="698,240 750,240 782,272 730,272"       fill="#59A14F"/>
+  <polygon points="730,272 782,272 814,304 762,304"       fill="#E15759"/>
+  <polygon points="762,304 814,304 846,336 794,336"       fill="#E15759"/>
+  <!-- grid + border -->
+  <g stroke="#bdbdbd" stroke-width="0.8">
+    <line x1="590" y1="80" x2="590" y2="336"/><line x1="622" y1="80" x2="622" y2="336"/><line x1="654" y1="80" x2="654" y2="336"/>
+    <line x1="686" y1="80" x2="686" y2="336"/><line x1="718" y1="80" x2="718" y2="336"/><line x1="750" y1="80" x2="750" y2="336"/>
+    <line x1="782" y1="80" x2="782" y2="336"/><line x1="814" y1="80" x2="814" y2="336"/><line x1="846" y1="80" x2="846" y2="336"/>
+    <line x1="590" y1="80" x2="846" y2="80"/><line x1="590" y1="112" x2="846" y2="112"/><line x1="590" y1="144" x2="846" y2="144"/>
+    <line x1="590" y1="176" x2="846" y2="176"/><line x1="590" y1="208" x2="846" y2="208"/><line x1="590" y1="240" x2="846" y2="240"/>
+    <line x1="590" y1="272" x2="846" y2="272"/><line x1="590" y1="304" x2="846" y2="304"/><line x1="590" y1="336" x2="846" y2="336"/>
+  </g>
+  <rect x="590" y="80" width="256" height="256" fill="none" stroke="#444" stroke-width="1.4"/>
+  <!-- axes -->
+  <text x="718" y="353" class="axis" text-anchor="middle">key-value chunk &#8594;</text>
+  <text x="565" y="208" class="axis" text-anchor="middle" transform="rotate(-90 565 208)">&#8592; query chunk</text>
+  <g class="idx" text-anchor="middle">
+    <text x="606" y="76">0</text><text x="638" y="76">1</text><text x="670" y="76">2</text><text x="702" y="76">3</text><text x="734" y="76">4</text><text x="766" y="76">5</text><text x="798" y="76">6</text><text x="830" y="76">7</text>
+  </g>
+
+  <!-- load bars (b): 3,6,6,6 per GPU (same 15->80 scale) -->
+  <line x1="590" y1="474" x2="846" y2="474" stroke="#444" stroke-width="1.1"/>
+  <line x1="590" y1="442" x2="846" y2="442" stroke="#bbb" stroke-width="1" stroke-dasharray="4 3"/>
+  <rect x="605" y="458" width="34" height="16" fill="#4E79A7"/>
+  <rect x="669" y="442" width="34" height="32" fill="#F28E2B"/>
+  <rect x="733" y="442" width="34" height="32" fill="#59A14F"/>
+  <rect x="797" y="442" width="34" height="32" fill="#E15759"/>
+  <g class="barval" text-anchor="middle">
+    <text x="622" y="452">3</text><text x="686" y="436">6</text><text x="750" y="436">6</text><text x="814" y="436">6</text>
+  </g>
+  <g class="barlab" text-anchor="middle">
+    <text x="622" y="488">GPU0</text><text x="686" y="488">GPU1</text><text x="750" y="488">GPU2</text><text x="814" y="488">GPU3</text>
+  </g>
+  <text x="718" y="514" class="capt" fill="#2f7d32" text-anchor="middle">balanced work</text>
+
+  <!-- ===== block-type legend ===== -->
+  <line x1="80" y1="555" x2="880" y2="555" stroke="#e0e0e0" stroke-width="1"/>
+  <g transform="translate(85,572)">
+    <rect x="0" y="-10" width="14" height="14" fill="#888"/>
+    <text x="20" y="1" class="leg">full attention block</text>
+    <polygon points="180,-10 180,4 194,4" fill="#888"/>
+    <text x="200" y="1" class="leg">causal block (diagonal)</text>
+    <polygon points="375,-10 389,-10 389,4" fill="#888"/>
+    <text x="395" y="1" class="leg">partial block (window edge)</text>
+    <rect x="590" y="-10" width="14" height="14" fill="none" stroke="#bdbdbd"/>
+    <text x="610" y="1" class="leg">skipped (outside window / future)</text>
+  </g>
+</svg>
