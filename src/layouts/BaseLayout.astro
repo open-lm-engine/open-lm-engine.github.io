@@ -30,7 +30,8 @@ const { title, description, sky = false } = Astro.props;
         var stored = localStorage.getItem('theme');
         document.documentElement.setAttribute('data-theme', stored === 'light' ? 'light' : 'dark');
         if (sky) {
-          if (localStorage.getItem('sky') === 'on') {
+          // stars on by default, unless the visitor explicitly turned them off
+          if (localStorage.getItem('sky') !== 'off') {
             document.documentElement.setAttribute('data-sky', 'on');
           }
           if (localStorage.getItem('sky-quality') === 'high') {

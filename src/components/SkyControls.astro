@@ -96,10 +96,10 @@ const { prompt, labelled = false, showStars = false } = Astro.props;
   const setStars = (on: boolean) => {
     if (on) {
       root.setAttribute('data-sky', 'on');
-      localStorage.setItem('sky', 'on');
+      localStorage.removeItem('sky');
     } else {
       root.removeAttribute('data-sky');
-      localStorage.removeItem('sky');
+      localStorage.setItem('sky', 'off');
     }
   };
 

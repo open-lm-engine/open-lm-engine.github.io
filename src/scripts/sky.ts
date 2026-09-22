@@ -87,7 +87,7 @@ if (canvas) {
   // ---- visibility -------------------------------------------------------
 
   function skyVisible(): boolean {
-    if (root.getAttribute('data-sky') !== 'on') return false; // stars are opt-in
+    if (root.getAttribute('data-sky') !== 'on') return false; // visitor turned the stars off
     const theme = root.getAttribute('data-theme');
     if (theme === 'dark') return true;
     if (theme === 'light') return false;
