@@ -312,11 +312,9 @@ const FIVE_SHOT_MODELS = loadModels(FIVE_SHOT_MODULES);
 // stable color across a session without a manual entry here. Palette is the
 // dataviz-skill default categorical order (validated adjacent-pair-safe) —
 // PlotChart's DARK map already lightens each of these for dark mode.
-const RIGEL_KEY_ORDER = ['rigel-base', 'rigel-mid', 'rigel-base-long'];
+const RIGEL_KEY_ORDER = ['rigel-mid'];
 export const PINNED_COLOR: Record<string, string> = {
-  'rigel-base': '#2a78d6',
-  'rigel-mid': '#1baf7a',
-  'rigel-base-long': '#eb6834',
+  'rigel': '#1baf7a',
 };
 export const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
 
