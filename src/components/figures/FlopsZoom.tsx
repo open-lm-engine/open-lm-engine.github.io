@@ -12,7 +12,7 @@
 // labels fade in together. Rigel ends as a sliver, which is the point.
 import { useEffect, useRef } from 'react';
 import { DARK } from '../PlotChart';
-import { deriveModelName, PALETTE, RIGEL_COLOR } from './RigelCharts';
+import { colorsForKeys, deriveModelName } from './RigelCharts';
 import flopsData from '../../../results/flops.json';
 
 const VALUES = flopsData as Record<string, number>;
@@ -28,16 +28,9 @@ const NAMES: Record<string, string> = Object.fromEntries(KEYS.map((k) => [k, der
 const RATIO: Record<string, number> = Object.fromEntries(KEYS.map((k) => [k, VALUES[k] / RIGEL]));
 const MAX_RATIO = Math.max(...KEYS.map((k) => RATIO[k]));
 
-// rigel keeps the accent pink used everywhere else in the post; the
-// baselines fill the palette slots alphabetically (same rule as the eval
-// charts), so a new key in flops.json gets a stable color.
-const COLORS: Record<string, string> = (() => {
-  const out: Record<string, string> = { rigel: RIGEL_COLOR };
-  KEYS.filter((k) => k !== 'rigel')
-    .sort()
-    .forEach((k, i) => (out[k] = PALETTE[i % PALETTE.length]));
-  return out;
-})();
+// same colour rule as the eval charts: Rigel's blue, then a hue per model
+// family with a shade per variant, so a model matches its colour across figures
+const COLORS: Record<string, string> = colorsForKeys(KEYS);
 
 const SUP: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
 function formatFlops(v: number): string {

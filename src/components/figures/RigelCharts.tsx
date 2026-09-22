@@ -16,7 +16,8 @@
 // each phase's actual slice sequence — a value-sorted order failed for
 // several phases where two similar hues ended up adjacent). "Other" is the
 // site's own muted-ink token, not a generated 9th hue.
-import PlotChart, { type ChartSpec } from '../PlotChart';
+import PlotChart, { DARK, type ChartSpec } from '../PlotChart';
+import { familyShades } from './modelColors';
 
 const ONE_SHOT_MODULES = import.meta.glob<{ default: HarnessResults }>('../../../results/0-shot/*.json', { eager: true });
 const FIVE_SHOT_MODULES = import.meta.glob<{ default: HarnessResults }>('../../../results/5-shot/*.json', { eager: true });
@@ -330,13 +331,25 @@ function orderModels(models: ModelEntry[]): ModelEntry[] {
   return [...rigel, ...rest];
 }
 
-function colorsFor(models: ModelEntry[]): Record<string, string> {
+// Rigel gets its fixed blue; baselines get a hue per family and a shade per
+// variant (see modelColors.ts). The dark-mode twins are registered with
+// PlotChart's DARK map so its theme swap picks them up by exact hex.
+export function colorsForKeys(keys: string[]): Record<string, string> {
   const colors: Record<string, string> = {};
-  let i = 0;
-  for (const m of orderModels(models)) {
-    colors[m.key] = isRigel(m.key) ? RIGEL_COLOR : PALETTE[i++ % PALETTE.length];
+  const shades = familyShades(keys.filter((k) => !isRigel(k)));
+  for (const k of keys) {
+    if (isRigel(k)) {
+      colors[k] = RIGEL_COLOR;
+    } else {
+      colors[k] = shades[k].light;
+      DARK[shades[k].light] = shades[k].dark;
+    }
   }
   return colors;
+}
+
+function colorsFor(models: ModelEntry[]): Record<string, string> {
+  return colorsForKeys(models.map((m) => m.key));
 }
 
 const TASK_METRICS: { task: string; metric: 'acc' | 'acc_norm' }[] = [
