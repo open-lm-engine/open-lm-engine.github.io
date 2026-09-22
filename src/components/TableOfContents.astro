@@ -15,9 +15,12 @@ const { headings } = Astro.props;
 // which itself stops at h3 — h4 is never numbered in the article body
 // either), same document-order, per-depth counting, skipping the
 // rehype-generated "References" footnotes heading so the two never disagree.
+// back matter that stays outside the numbering (mirrors the :not() rules on
+// the heading counters in global.css)
+const UNNUMBERED = new Set(['footnote-label', 'citation']);
 const counters = [0, 0, 0, 0];
 const numbered = headings.map((h) => {
-  if (h.slug === 'footnote-label' || h.depth < 1 || h.depth > 4) return { ...h, number: '' };
+  if (UNNUMBERED.has(h.slug) || h.depth < 1 || h.depth > 4) return { ...h, number: '' };
   counters[h.depth - 1]++;
   for (let d = h.depth; d < 4; d++) counters[d] = 0;
   if (h.depth === 4) return { ...h, number: '' };
