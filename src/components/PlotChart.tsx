@@ -527,11 +527,21 @@ export default function PlotChart({ spec, height, sweep }: { spec: ChartSpec; he
           // snap a dot onto the hovered point of line traces (axis d2p maps
           // data -> plot pixels on the current range)
           if (t.type === 'scatter' && pt.xaxis?.d2p && pt.yaxis?.d2p && pt.x != null && pt.y != null) {
-            nextDots.push({
-              x: pt.xaxis.d2p(pt.x) + pt.xaxis._offset + ox,
-              y: pt.yaxis.d2p(pt.y) + pt.yaxis._offset + oy,
-              color: traceColor(t, dk),
-            });
+            const dx = pt.xaxis.d2p(pt.x);
+            const dy = pt.yaxis.d2p(pt.y);
+            // plotly clips the line to the plot area, but the dot is our own
+            // absolutely-positioned element: a point beyond a capped axis
+            // range (the first steps of a loss curve, far above the y cap)
+            // would otherwise float outside the chart. Only mark visible points.
+            const inside =
+              dx >= -1 && dx <= (pt.xaxis._length ?? Infinity) + 1 && dy >= -1 && dy <= (pt.yaxis._length ?? Infinity) + 1;
+            if (inside) {
+              nextDots.push({
+                x: dx + pt.xaxis._offset + ox,
+                y: dy + pt.yaxis._offset + oy,
+                color: traceColor(t, dk),
+              });
+            }
           }
           // pie slices have no cursor/crosshair to mark position on the chart
           // itself — the only "you are here" cue was the mouse arrow. Give
