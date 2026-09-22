@@ -67,12 +67,17 @@ function extractShortCite(citationText) {
     return year ? `${surname} et al., ${year}` : `${surname} et al.`;
   }
 
-  const parts = authorsSeg.split(',').map((s) => s.trim()).filter(Boolean);
+  // Authors arrive in natural order ("Tri Dao and Albert Gu", "A, B, and C")
+  // from remark-bibtex-refs, or hand-written inverted ("Vaswani, Ashish, and
+  // Noam Shazeer"); split on both commas and "and" so the first unit is one
+  // person's name either way.
+  const parts = authorsSeg.split(/,\s*|\s+and\s+/).map((s) => s.trim()).filter(Boolean);
   if (parts.length === 0) return year || citationText.slice(0, 24);
 
   const firstUnit = parts[0];
   const firstIsInverted = firstUnit.split(/\s+/).length === 1;
-  const firstSurname = firstIsInverted ? firstUnit : firstUnit.split(/\s+/).pop();
+  // corporate first authors ("Granite Team", "Kimi Team") keep their whole name
+  const firstSurname = firstIsInverted || /\b(team|ai|labs?|research|group)$/i.test(firstUnit) ? firstUnit : firstUnit.split(/\s+/).pop();
   const rest = firstIsInverted ? parts.slice(2) : parts.slice(1);
 
   if (rest.length === 0) {
