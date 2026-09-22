@@ -4,19 +4,18 @@
 // `showStars` is set, which is only true on a post that opts into the sky
 // (`sky: true` in its frontmatter). Quality is disabled while the stars are off.
 // In the header they sit in a compact row of icon pills. Under a post's title
-// (`labelled`) they stack one per line as wider pills with their text inside;
-// the stars button carries the post's own `prompt`.
+// (`labelled`) they sit side by side as wider pills with their text inside;
+// the stars button's text names the state you're in ("Stars on" / "Stars off").
 //
 // Buttons carry data-sky-action instead of ids so the group can appear more
 // than once per page; a single delegated listener below handles all of them.
 interface Props {
-  prompt?: string;
   labelled?: boolean;
   // the stars + quality rows only make sense on a post that has the sky; other
   // pages (and the header on every page) get just the light/dark toggle.
   showStars?: boolean;
 }
-const { prompt, labelled = false, showStars = false } = Astro.props;
+const { labelled = false, showStars = false } = Astro.props;
 ---
 
 <div class:list={['sky-controls', { 'sky-controls--labelled': labelled }]}>
@@ -44,7 +43,8 @@ const { prompt, labelled = false, showStars = false } = Astro.props;
           </g>
           <path class="icon-off" d="M3.5 3.5l17 17"></path>
         </svg>
-        {labelled && <span class="btn-text">{prompt ?? 'Starfield'}</span>}
+        {labelled && <span class="btn-text btn-text--stars-on">Stars on</span>}
+        {labelled && <span class="btn-text btn-text--stars-off">Stars off</span>}
       </button>
     </div>
   )}

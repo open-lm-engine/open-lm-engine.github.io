@@ -37,8 +37,6 @@ interface Props {
   heroImage?: ImageMetadata;
   // opts this post into the starfield background and its controls
   sky?: boolean;
-  // description shown in front of the dark-mode toggle under the title
-  skyPrompt?: string;
   // external resources shown as pills under the byline
   links?: ResourceLink[];
   // paper-style abstract shown in the hero under the byline; Markdown with
@@ -46,7 +44,7 @@ interface Props {
   abstract?: string;
 }
 
-const { title, subtitle, description, author, authors, affiliations, headings, codeColor, heroImage, sky = false, skyPrompt, links, abstract } = Astro.props;
+const { title, subtitle, description, author, authors, affiliations, headings, codeColor, heroImage, sky = false, links, abstract } = Astro.props;
 // 'green' is the site default (--code-accent already resolves to it); 'pink' points
 // --code-accent at the original --accent pink instead, which is itself theme-aware.
 const codeAccentStyle = codeColor === 'pink' ? '--code-accent: var(--accent);' : undefined;
@@ -128,7 +126,7 @@ const titleAfterI = iIndex >= 0 ? title.slice(iIndex + 1) : '';
       )}
       {sky && (
         <div class="hero-controls">
-          <SkyControls prompt={skyPrompt} labelled showStars />
+          <SkyControls labelled showStars />
         </div>
       )}
     </section>

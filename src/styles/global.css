@@ -547,10 +547,17 @@ body::after {
   color: var(--accent);
 }
 
-.sky-controls--labelled .sky-toggle .btn-text {
-  color: var(--accent);
-  font: 500 1rem/1 "Newsreader", Georgia, serif;
-  font-style: italic;
+/* the stars button's text names the state you're in */
+.btn-text--stars-on {
+  display: none;
+}
+
+:root[data-sky="on"] .btn-text--stars-on {
+  display: inline;
+}
+
+:root[data-sky="on"] .btn-text--stars-off {
+  display: none;
 }
 
 /* the theme button's text names the mode you're in */

@@ -27,8 +27,6 @@ const blog = defineCollection({
     codeColor: z.enum(['pink', 'green']).optional().default('green'),
     // opts a post into the starfield background and its controls
     sky: z.boolean().optional().default(false),
-    // description in front of the dark-mode toggle under the title
-    skyPrompt: z.string().optional(),
     // paper-style abstract shown in the hero under the byline
     abstract: z.string().optional(),
     // external resources shown as pills under the byline (models, code, paper)
