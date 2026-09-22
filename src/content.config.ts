@@ -28,6 +28,17 @@ const blog = defineCollection({
     sky: z.boolean().optional().default(false),
     // description in front of the dark-mode toggle under the title
     skyPrompt: z.string().optional(),
+    // external resources shown as pills under the byline (models, code, paper)
+    links: z
+      .array(
+        z.object({
+          label: z.string(),
+          href: z.string(),
+          // a short emoji or symbol drawn before the label
+          icon: z.string().optional(),
+        })
+      )
+      .optional(),
   }),
 });
 
