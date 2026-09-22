@@ -230,8 +230,12 @@ export default function FlopsZoom() {
       // as the frame pulls back instead of popping between tick schemes
       let gi = 0;
       let li = 0;
+      // coarsest step first: a value shared by several steps (×20 is a ×10
+      // and a ×20 tick) is labelled by the widest-spaced, most opaque one,
+      // since the first label at a value wins below. Finest-first left the
+      // settled frame's labels at the ×10 step's near-zero alpha.
       const labelled = new Set<number>();
-      for (const step of GRID_STEPS) {
+      for (const step of [...GRID_STEPS].reverse()) {
         const spacing = (step / top) * plotH;
         if (spacing < 12) continue;
         const lineA = clamp01((spacing - 12) / 26);
@@ -256,7 +260,10 @@ export default function FlopsZoom() {
             tx.setAttribute('x', String(x0 - 8));
             tx.setAttribute('y', String(y + 3.5));
             tx.textContent = `×${u}`;
-            tx.style.opacity = String(labelA * reveal);
+            // tick labels track the zoom from the first frame (only the
+            // "×N more FLOPs" chips wait for the reveal), so the axis is
+            // readable throughout the animation, not just once it has settled
+            tx.style.opacity = String(labelA);
             tx.style.display = '';
           }
         }
