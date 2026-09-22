@@ -84,7 +84,7 @@ const PHASES: Phase[] = [
   {
     key: 'h4',
     title: 'Phase 4',
-    note: 'Nemotron-CC v2 introduced; math/code balloon to 35% each',
+    note: 'Nemotron-CC-v2 introduced; math/code balloon to 35% each',
     shares: { 'General web & reference': 2.2, Code: 35.0, Math: 35.0, Multilingual: 3.5, 'Nemotron-CC-v2': 20.0, FinePDF: 4.3 },
   },
   {
@@ -268,14 +268,15 @@ function harnessMetric(json: HarnessResults, task: string, metric: 'acc' | 'acc_
   return value;
 }
 
-// "granite-4.2-8b" -> "Granite-4.2-8B": capitalize the first hyphen segment,
-// and uppercase a trailing letter that follows a parameter-count number
-// ("8b" -> "8B") — covers every filename seen so far without a per-model
-// entry. NAME_OVERRIDE is the escape hatch for the rare case where that
-// isn't the name you want (kept small on purpose — most new files need
-// nothing here).
+// "granite-4.2-8b" -> "Granite-4.2-8B", "llama-3.2-3b-instruct" ->
+// "Llama-3.2-3B-Instruct": capitalize every hyphen segment and uppercase a
+// trailing letter that follows a parameter-count number ("8b" -> "8B") — the
+// Hugging Face repo-name convention the post's prose follows too. Covers
+// every filename seen so far without a per-model entry. NAME_OVERRIDE is the
+// escape hatch for the rare case where that isn't the name you want (kept
+// small on purpose — most new files need nothing here).
 const NAME_OVERRIDE: Record<string, string> = {
-  'rigel-base-long': 'Rigel-long-base',
+  'rigel-base-long': 'Rigel-Base-Long',
   'smollm-3-3b': 'SmolLM3-3B',
   'smollm-3-3b-base': 'SmolLM3-3B-Base',
 };
@@ -284,10 +285,10 @@ export function deriveModelName(key: string): string {
   if (NAME_OVERRIDE[key]) return NAME_OVERRIDE[key];
   return key
     .split('-')
-    .map((part, i) => {
+    .map((part) => {
       const sizeMatch = part.match(/^(\d+(?:\.\d+)?)([a-zA-Z]+)$/);
       if (sizeMatch) return `${sizeMatch[1]}${sizeMatch[2].toUpperCase()}`;
-      return i === 0 ? part.charAt(0).toUpperCase() + part.slice(1) : part;
+      return part.charAt(0).toUpperCase() + part.slice(1);
     })
     .join('-');
 }
@@ -307,14 +308,14 @@ const ONE_SHOT_MODELS = loadModels(ONE_SHOT_MODULES);
 const FIVE_SHOT_MODELS = loadModels(FIVE_SHOT_MODULES);
 
 // Rigel's own checkpoints (any key named rigel or rigel-*) share one electric
-// blue and always lead (in this progression order) in every chart,
-// regardless of which external baselines happen to be present; baselines
+// blue and always lead in every chart, regardless of which external
+// baselines happen to be present (so the glow and the sort key follow
+// whatever the Rigel results file is currently called); baselines
 // fill the remaining validated palette slots in alphabetical order, so a
 // newly-dropped-in JSON gets a stable color across a session without a manual
 // entry here. Palette is the dataviz-skill default categorical order
 // (validated adjacent-pair-safe), minus its blue so nothing competes with
 // Rigel — PlotChart's DARK map lightens each of these for dark mode.
-const RIGEL_KEY_ORDER = ['rigel-base'];
 export const RIGEL_COLOR = '#1f6fe0'; // DARK maps it to a brighter, neon-leaning blue
 export const isRigel = (key: string) => key === 'rigel' || key.startsWith('rigel-');
 export const PALETTE = ['#eb6834', '#1baf7a', '#eda100', '#4a3aa7', '#e34948', '#008300'];
@@ -323,8 +324,9 @@ const INK = '#161513';
 const MUTED = '#6d6860';
 
 function orderModels(models: ModelEntry[]): ModelEntry[] {
-  const rigel = RIGEL_KEY_ORDER.map((k) => models.find((m) => m.key === k)).filter((m): m is ModelEntry => !!m);
-  const rest = models.filter((m) => !RIGEL_KEY_ORDER.includes(m.key)).sort((a, b) => a.key.localeCompare(b.key));
+  const byKey = (a: ModelEntry, b: ModelEntry) => a.key.localeCompare(b.key);
+  const rigel = models.filter((m) => isRigel(m.key)).sort(byKey);
+  const rest = models.filter((m) => !isRigel(m.key)).sort(byKey);
   return [...rigel, ...rest];
 }
 
