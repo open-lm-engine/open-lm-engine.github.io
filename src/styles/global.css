@@ -1618,7 +1618,8 @@ figure {
   }
 }
 
-/* measured-fact callouts */
+/* callouts: measured facts, guiding principles — an accent-edged box */
+.article-content .callout,
 .article-content .measure-note {
   margin: 28px 0;
   padding: 16px 20px;
@@ -1629,6 +1630,7 @@ figure {
   font-size: 0.95rem;
 }
 
+.article-content .callout > :last-child,
 .article-content .measure-note > :last-child {
   margin-bottom: 0;
 }

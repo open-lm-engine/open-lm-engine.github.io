@@ -74,10 +74,10 @@ We had no dedicated cluster and hence, we picked chips up as they became availab
 {MODEL_NAME} therefore targets a different point on the scaling curve than trillion-parameter frontier models<Sidenote>partly because we couldn't get compute to train a trillion parameter model</Sidenote>: a base model small enough to pretrain, ablate, and iterate on with a modest and changing pool of hardware, at a total-parameter budget measured in billions and an active-parameter budget within reach of a single accelerator.
 This blog gives a brief overview of {MODEL_NAME}: the architecture, the six-phase pretraining mixture, the multi-chip clusters and the kernels and context-parallel machinery it needed, the optimization recipe, and how the result compares to models trained with far more compute.
 
-The following principles guided this project from the start:
-
-1. **Work with the compute you have.** With no dedicated cluster, we treated whatever hardware became available as an opportunity rather than a compromise.
-2. **FLOPs matter more than the logo on the chip.** We tried not to be attached to any one vendor or generation: an H100, an A100, a V100 and a TPU all do useful work.
+The following principle guided this project from the start:
+<div class="callout">
+**Work with the compute you have.** With no dedicated cluster, we treated whatever hardware became available as an opportunity rather than a compromise.
+</div>
 
 # Architecture
 For the feed-forward blocks, we use MoE layers since they disentangle training FLOPs from the total parameter count of the model.
