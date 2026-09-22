@@ -305,18 +305,18 @@ function loadModels(modules: Record<string, { default: HarnessResults }>): Model
 const ONE_SHOT_MODELS = loadModels(ONE_SHOT_MODULES);
 const FIVE_SHOT_MODELS = loadModels(FIVE_SHOT_MODULES);
 
-// Rigel's own checkpoints (any key named rigel or rigel-*) share the site's
-// accent pink and always lead (in this progression order) in every chart,
+// Rigel's own checkpoints (any key named rigel or rigel-*) share one electric
+// blue and always lead (in this progression order) in every chart,
 // regardless of which external baselines happen to be present; baselines
 // fill the remaining validated palette slots in alphabetical order, so a
 // newly-dropped-in JSON gets a stable color across a session without a manual
 // entry here. Palette is the dataviz-skill default categorical order
-// (validated adjacent-pair-safe), minus its own pink so nothing competes with
+// (validated adjacent-pair-safe), minus its blue so nothing competes with
 // Rigel — PlotChart's DARK map lightens each of these for dark mode.
 const RIGEL_KEY_ORDER = ['rigel-mid'];
-export const RIGEL_COLOR = '#c94f7c'; // --accent (light); DARK maps it to the dark-mode accent
+export const RIGEL_COLOR = '#1f6fe0'; // DARK maps it to a brighter, neon-leaning blue
 export const isRigel = (key: string) => key === 'rigel' || key.startsWith('rigel-');
-export const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948'];
+export const PALETTE = ['#eb6834', '#1baf7a', '#eda100', '#4a3aa7', '#e34948', '#008300'];
 // ink / muted tokens, in their light values; PlotChart's DARK map inverts them
 const INK = '#161513';
 const MUTED = '#6d6860';
@@ -378,6 +378,7 @@ function buildAccuracySpec(models: ModelEntry[]): ChartSpec {
   const metrics = [...rows.map((r) => r.metric), 'mean' as const];
   return {
     height: 460,
+    glow: 'trace',
     // Rigel's bars are solid, outlined in ink and labelled in bold accent;
     // the baselines sit back at partial opacity with muted labels, so the
     // eye lands on our model first in every group.
@@ -444,6 +445,7 @@ function wikitextBpbSpec(): ChartSpec {
   const bpb = ordered.map((m) => harnessMetric(m.results, 'wikitext', 'bits_per_byte'));
   return {
     height: 380,
+    glow: 'point',
     traces: [
       {
         type: 'bar',

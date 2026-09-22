@@ -1639,6 +1639,13 @@ figure {
 }
 
 /* plotly figure panels */
+/* neon glow on the leading series (PlotChart sets data-glow and --glow from
+   the spec); plotly draws bar traces as .barlayer .trace in spec order */
+.plot-chart[data-glow='trace'] .barlayer .trace:first-child .point path,
+.plot-chart[data-glow='point'] .barlayer .trace:first-child .point:first-child path {
+  filter: drop-shadow(0 0 2px var(--glow)) drop-shadow(0 0 7px var(--glow));
+}
+
 .article-content .plot-chart {
   width: 100%;
   max-width: 100%;

@@ -199,6 +199,9 @@ export default function FlopsZoom() {
         bars[k].style.fill = colorOf(k, dk);
         chips[k].rect.style.stroke = colorOf(k, dk);
       }
+      // same neon treatment as the plotly charts' leading series
+      const glow = colorOf('rigel', dk);
+      bars.rigel.style.filter = `drop-shadow(0 0 2px ${glow}) drop-shadow(0 0 7px ${glow})`;
     };
     applyTheme();
 

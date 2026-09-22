@@ -9,7 +9,15 @@
 import { useEffect, useRef, useState } from 'react';
 
 type Trace = Record<string, any>;
-export type ChartSpec = { traces: Trace[]; layout: Record<string, any>; height?: number };
+export type ChartSpec = {
+  traces: Trace[];
+  layout: Record<string, any>;
+  height?: number;
+  // neon glow (CSS drop-shadow, see .plot-chart[data-glow] in global.css) on
+  // the leading series: 'trace' lights every bar of the first trace, 'point'
+  // only the first bar of the first trace. Colour follows that series' marker.
+  glow?: 'trace' | 'point';
+};
 
 // light -> dark token inversion for spec-embedded colors (structural colors are
 // handled by the base layout overrides; trace accents get dark-readable tints)
@@ -23,8 +31,8 @@ export const DARK: Record<string, string> = {
   '#2a78d6': '#3987e5', '#eb6834': '#d95926', '#1baf7a': '#199e70',
   '#eda100': '#c98500', '#e87ba4': '#d55181', '#008300': '#008300',
   '#4a3aa7': '#9085e9', '#e34948': '#e66767',
-  // Rigel's own series: the site accent, light → dark token
-  '#c94f7c': '#e88fb0',
+  // Rigel's own series: electric blue, light → brighter dark token
+  '#1f6fe0': '#4da3ff',
   // alpha-0 open-marker rings (stroke = marker.color in plotly-basic): the
   // dark-teal rings would vanish on the dark paper, so lift them to light teal
   'rgba(23,107,100,0)': 'rgba(79,179,167,0)',
@@ -397,6 +405,11 @@ export default function PlotChart({ spec, height, sweep }: { spec: ChartSpec; he
         xaxis: { ...axis, ...(sxaxis ?? {}), gridcolor: grid, zerolinecolor: line, tickfont: { size: 11, color: muted } },
         yaxis: { ...axis, ...(syaxis ?? {}), gridcolor: grid, zerolinecolor: line, tickfont: { size: 11, color: muted } },
       };
+      if (spec.glow && traces.length) {
+        const c = traces[0].marker?.color;
+        target.dataset.glow = spec.glow;
+        target.style.setProperty('--glow', Array.isArray(c) ? c[0] : c ?? 'currentColor');
+      }
       try {
         const drawn = Plotly.react(target, traces, layout, {
           responsive: true,
