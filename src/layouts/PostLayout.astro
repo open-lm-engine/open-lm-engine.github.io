@@ -117,7 +117,7 @@ const titleAfterI = iIndex >= 0 ? title.slice(iIndex + 1) : '';
       {links && links.length > 0 && (
         <nav class="article-links" aria-label="Resources">
           {links.map((l) => (
-            <a class="article-link" href={l.href} target="_blank" rel="noopener noreferrer">
+            <a class="article-link" href={l.href} {...(/^https?:/.test(l.href) ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>
               {l.icon && <span class="article-link-icon" aria-hidden="true">{l.icon}</span>}
               {l.label}
             </a>
