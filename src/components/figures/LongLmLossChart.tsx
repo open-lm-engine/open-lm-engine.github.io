@@ -57,7 +57,7 @@ const SPEC: ChartSpec = {
       customdata: DATA.tokens.map((t, i) => [t, DATA.step[i], DATA.loss[i]]),
       line: { color: COLOR, width: 2 },
       hovertemplate:
-        '<b>%{customdata[0]:.1f}B tokens</b><br><b>cluster</b>: H100<br><b>step</b>: %{customdata[1]}<br><b>loss</b>: %{y:.3f} (smoothed)<br><b>raw</b>: %{customdata[2]:.3f}<extra></extra>',
+        '<b>%{customdata[0]:.1f}B tokens</b><br><b>cluster</b>: H100<br><b>loss</b>: %{y:.3f} (smoothed)<br><b>raw</b>: %{customdata[2]:.3f}<extra></extra>',
     },
   ],
   layout: {

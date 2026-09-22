@@ -23,6 +23,8 @@ export const DARK: Record<string, string> = {
   '#2a78d6': '#3987e5', '#eb6834': '#d95926', '#1baf7a': '#199e70',
   '#eda100': '#c98500', '#e87ba4': '#d55181', '#008300': '#008300',
   '#4a3aa7': '#9085e9', '#e34948': '#e66767',
+  // Rigel's own series: the site accent, light → dark token
+  '#c94f7c': '#e88fb0',
   // alpha-0 open-marker rings (stroke = marker.color in plotly-basic): the
   // dark-teal rings would vanish on the dark paper, so lift them to light teal
   'rgba(23,107,100,0)': 'rgba(79,179,167,0)',

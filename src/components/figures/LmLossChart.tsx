@@ -2,7 +2,7 @@
 // results/lm-loss.json (a compacted W&B export of train/lm_loss vs tokens —
 // every logged point, nothing downsampled or smoothed). Coloured piecewise
 // by the cluster each stretch of the run was trained on (see
-// hardwareSegments.ts); hover reports tokens, step, cluster and loss through
+// hardwareSegments.ts); hover reports tokens, cluster and loss through
 // PlotChart's card.
 import PlotChart, { type ChartSpec } from '../PlotChart';
 import { piecewiseTraces, SEGMENT_BOUNDARY_SHAPES, TOKENS_XAXIS } from './hardwareSegments';
@@ -23,7 +23,7 @@ const SPEC: ChartSpec = {
     values: DATA.loss,
     customdata: (i) => [DATA.tokens[i], DATA.step[i]],
     hovertemplate: (label) =>
-      `<b>%{customdata[0]:.3f}T tokens</b><br><b>cluster</b>: ${label}<br><b>step</b>: %{customdata[1]}<br><b>loss</b>: %{y:.3f}<extra></extra>`,
+      `<b>%{customdata[0]:.3f}T tokens</b><br><b>cluster</b>: ${label}<br><b>loss</b>: %{y:.3f}<extra></extra>`,
     width: 1.5,
   }),
   layout: {

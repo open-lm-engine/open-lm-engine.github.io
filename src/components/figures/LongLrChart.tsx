@@ -21,7 +21,7 @@ const SPEC: ChartSpec = {
       customdata: DATA.tokens.map((t, i) => [t, DATA.step[i], DATA.lr[i].toExponential(2)]),
       line: { color: hardwareHue('H100'), width: 2 },
       hovertemplate:
-        '<b>%{customdata[0]:.1f}B tokens</b><br><b>cluster</b>: H100<br><b>step</b>: %{customdata[1]}<br><b>learning rate</b>: %{customdata[2]}<extra></extra>',
+        '<b>%{customdata[0]:.1f}B tokens</b><br><b>cluster</b>: H100<br><b>learning rate</b>: %{customdata[2]}<extra></extra>',
     },
   ],
   layout: {

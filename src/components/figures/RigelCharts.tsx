@@ -305,18 +305,21 @@ function loadModels(modules: Record<string, { default: HarnessResults }>): Model
 const ONE_SHOT_MODELS = loadModels(ONE_SHOT_MODULES);
 const FIVE_SHOT_MODELS = loadModels(FIVE_SHOT_MODULES);
 
-// Rigel's own checkpoints keep a fixed color and always lead (in this
-// progression order) in every chart, regardless of which external
-// baselines happen to be present; baselines fill the remaining validated
-// palette slots in alphabetical order, so a newly-dropped-in JSON gets a
-// stable color across a session without a manual entry here. Palette is the
-// dataviz-skill default categorical order (validated adjacent-pair-safe) —
-// PlotChart's DARK map already lightens each of these for dark mode.
+// Rigel's own checkpoints (any key named rigel or rigel-*) share the site's
+// accent pink and always lead (in this progression order) in every chart,
+// regardless of which external baselines happen to be present; baselines
+// fill the remaining validated palette slots in alphabetical order, so a
+// newly-dropped-in JSON gets a stable color across a session without a manual
+// entry here. Palette is the dataviz-skill default categorical order
+// (validated adjacent-pair-safe), minus its own pink so nothing competes with
+// Rigel — PlotChart's DARK map lightens each of these for dark mode.
 const RIGEL_KEY_ORDER = ['rigel-mid'];
-export const PINNED_COLOR: Record<string, string> = {
-  'rigel': '#1baf7a',
-};
-export const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7', '#e34948'];
+export const RIGEL_COLOR = '#c94f7c'; // --accent (light); DARK maps it to the dark-mode accent
+export const isRigel = (key: string) => key === 'rigel' || key.startsWith('rigel-');
+export const PALETTE = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948'];
+// ink / muted tokens, in their light values; PlotChart's DARK map inverts them
+const INK = '#161513';
+const MUTED = '#6d6860';
 
 function orderModels(models: ModelEntry[]): ModelEntry[] {
   const rigel = RIGEL_KEY_ORDER.map((k) => models.find((m) => m.key === k)).filter((m): m is ModelEntry => !!m);
@@ -325,11 +328,10 @@ function orderModels(models: ModelEntry[]): ModelEntry[] {
 }
 
 function colorsFor(models: ModelEntry[]): Record<string, string> {
-  const unpinned = PALETTE.filter((c) => !Object.values(PINNED_COLOR).includes(c));
   const colors: Record<string, string> = {};
   let i = 0;
   for (const m of orderModels(models)) {
-    colors[m.key] = PINNED_COLOR[m.key] ?? unpinned[i++ % unpinned.length];
+    colors[m.key] = isRigel(m.key) ? RIGEL_COLOR : PALETTE[i++ % PALETTE.length];
   }
   return colors;
 }
@@ -376,20 +378,28 @@ function buildAccuracySpec(models: ModelEntry[]): ChartSpec {
   const metrics = [...rows.map((r) => r.metric), 'mean' as const];
   return {
     height: 460,
+    // Rigel's bars are solid, outlined in ink and labelled in bold accent;
+    // the baselines sit back at partial opacity with muted labels, so the
+    // eye lands on our model first in every group.
     traces: ordered.map(({ key, name }) => {
       const perTask = rows.map((r) => r.values[key] * 100);
       const avg = perTask.reduce((sum, v) => sum + v, 0) / perTask.length;
+      const ours = isRigel(key);
       return {
         type: 'bar',
         orientation: 'v',
-        name,
+        name: ours ? `<b>${name}</b>` : name,
         x: tasks,
         y: [...perTask, avg],
         customdata: metrics,
-        marker: { color: [...perTask.map(() => colors[key]), colors[key]] },
+        marker: {
+          color: [...perTask.map(() => colors[key]), colors[key]],
+          opacity: ours ? 1 : 0.6,
+          line: ours ? { color: INK, width: 1.2 } : { width: 0 },
+        },
         texttemplate: '%{y:.1f}',
         textposition: 'outside',
-        textfont: { size: 9 },
+        textfont: ours ? { size: 10, color: RIGEL_COLOR, weight: 700 } : { size: 9, color: MUTED },
         cliponaxis: false,
         hovertemplate: `<b>%{x}</b><br><b>${name} %{customdata}</b>: %{y:.1f}%<extra></extra>`,
       };
@@ -440,10 +450,14 @@ function wikitextBpbSpec(): ChartSpec {
         orientation: 'v',
         x: ordered.map((m) => m.name),
         y: bpb,
-        marker: { color: ordered.map((m) => colors[m.key]) },
+        marker: {
+          color: ordered.map((m) => colors[m.key]),
+          opacity: ordered.map((m) => (isRigel(m.key) ? 1 : 0.6)),
+          line: { color: INK, width: ordered.map((m) => (isRigel(m.key) ? 1.2 : 0)) },
+        },
         texttemplate: '%{y:.3f}',
         textposition: 'outside',
-        textfont: { size: 11 },
+        textfont: { size: 11, color: ordered.map((m) => (isRigel(m.key) ? RIGEL_COLOR : MUTED)) },
         cliponaxis: false,
         hovertemplate: '<b>%{x}</b><br><b>bits/byte</b>: %{y:.3f}<extra></extra>',
       },

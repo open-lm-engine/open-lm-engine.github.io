@@ -865,7 +865,6 @@ figure {
 
 .article-content a {
   color: var(--citation);
-  font-weight: 600;
   text-decoration-color: color-mix(in srgb, var(--citation) 35%, transparent);
   text-underline-offset: 3px;
 }
@@ -1046,7 +1045,6 @@ figure {
 }
 
 .article-content a.fig-ref {
-  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -1173,7 +1171,6 @@ figure {
 
 .article-content .citation-ref a[data-footnote-ref] {
   color: var(--citation);
-  font-weight: 700;
   text-decoration: none;
 }
 
@@ -1196,10 +1193,6 @@ figure {
 
 .article-content section[data-footnotes] p {
   margin: 0;
-}
-
-.article-content section[data-footnotes] a[data-footnote-backref] {
-  font-weight: 700;
 }
 
 /* ---------- sidenote (Sidenote.astro) ---------- */

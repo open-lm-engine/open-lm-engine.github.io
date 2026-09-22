@@ -12,7 +12,7 @@
 // labels fade in together. Rigel ends as a sliver, which is the point.
 import { useEffect, useRef } from 'react';
 import { DARK } from '../PlotChart';
-import { deriveModelName, PALETTE, PINNED_COLOR } from './RigelCharts';
+import { deriveModelName, PALETTE, RIGEL_COLOR } from './RigelCharts';
 import flopsData from '../../../results/flops.json';
 
 const VALUES = flopsData as Record<string, number>;
@@ -28,15 +28,14 @@ const NAMES: Record<string, string> = Object.fromEntries(KEYS.map((k) => [k, der
 const RATIO: Record<string, number> = Object.fromEntries(KEYS.map((k) => [k, VALUES[k] / RIGEL]));
 const MAX_RATIO = Math.max(...KEYS.map((k) => RATIO[k]));
 
-// rigel keeps the rigel-base blue used everywhere else in the post; the
-// baselines fill the remaining palette slots alphabetically (same rule as
-// the eval charts), so a new key in flops.json gets a stable color.
+// rigel keeps the accent pink used everywhere else in the post; the
+// baselines fill the palette slots alphabetically (same rule as the eval
+// charts), so a new key in flops.json gets a stable color.
 const COLORS: Record<string, string> = (() => {
-  const unpinned = PALETTE.filter((c) => c !== PINNED_COLOR['rigel-base']);
-  const out: Record<string, string> = { rigel: PINNED_COLOR['rigel-base'] };
+  const out: Record<string, string> = { rigel: RIGEL_COLOR };
   KEYS.filter((k) => k !== 'rigel')
     .sort()
-    .forEach((k, i) => (out[k] = unpinned[i % unpinned.length]));
+    .forEach((k, i) => (out[k] = PALETTE[i % PALETTE.length]));
   return out;
 })();
 
