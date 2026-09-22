@@ -81,7 +81,8 @@ The following principles guided this project from the start:
 
 # Architecture
 For the feed-forward blocks, we use MoE layers since they disentangle training FLOPs from the total parameter count of the model.
-For the sequence mixer blocks, we adopted a hybrid design: GQA[^gqa] with sliding window length of 4,096 tokens with Mamba-2[^mamba2] layers. While we wanted to use Gated DeltaNet[^gdn] or Kimi Delta Attention[^kda], writing forward and backward kernels for V100s and TPUs for GDN layers seemed like a much bigger undertaking. We hope to adopt GDN[^gdn] (or KDA[^kda]) in our next models.
+For the sequence mixer blocks, we adopted a hybrid design: GQA[^gqa] with sliding window length of 4,096 tokens with Mamba-2[^mamba2] layers.
+While we wanted to use Gated DeltaNet[^gdn] or Kimi Delta Attention[^kda], writing forward and backward kernels for V100s and TPUs for GDN layers seemed like a much bigger undertaking. We hope to adopt GDN[^gdn] (or KDA[^kda]) in our next models.
 #### MoE
 Two axes have driven recent language-model efficiency work.
 The first decouples a model's capacity from the FLOPs required to train the model: sparse mixture-of-experts routing[^moe] lets total parameters (and consequently model capacity) grow far faster than the active parameters.
