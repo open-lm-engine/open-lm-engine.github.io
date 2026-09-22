@@ -1174,6 +1174,14 @@ figure {
   text-decoration: none;
 }
 
+/* citationStyle: 'superscript' — the plugin emits <sup class="citation-ref">;
+   line-height: 0 keeps the raised number from opening up the line it sits on */
+.article-content sup.citation-ref {
+  font-size: 0.7em;
+  line-height: 0;
+  vertical-align: super;
+}
+
 .article-content section[data-footnotes] {
   margin-top: 60px;
   padding-top: 20px;

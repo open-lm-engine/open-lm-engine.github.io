@@ -7,7 +7,8 @@
 // Style is set per-post via frontmatter: `citationStyle: 'text'` (default) renders
 // author-year, e.g. (Vaswani et al., 2017); `citationStyle: 'numeric'` renders the
 // original footnote number instead, e.g. [1], reusing remark-gfm's own numbering so it
-// always matches the References list.
+// always matches the References list; `citationStyle: 'superscript'` renders that same
+// number as a bare superscript with no brackets, e.g. word¹ (adjacent ones as ¹˒²).
 import { visit } from 'unist-util-visit';
 import { toText } from 'hast-util-to-text';
 
@@ -85,16 +86,17 @@ function extractShortCite(citationText) {
   return year ? `${firstSurname} et al., ${year}` : `${firstSurname} et al.`;
 }
 
-const STYLE_BRACKETS = {
-  text: { open: ' (', close: ')', sep: '; ' },
-  numeric: { open: ' [', close: ']', sep: ', ' },
+const STYLES = {
+  text: { open: ' (', close: ')', sep: '; ', tagName: 'span' },
+  numeric: { open: ' [', close: ']', sep: ', ', tagName: 'span' },
+  superscript: { open: '', close: '', sep: ',', tagName: 'sup' },
 };
 
 function buildCitationNode(run, footnoteText, style) {
-  const brackets = STYLE_BRACKETS[style] ?? STYLE_BRACKETS.text;
+  const { open, close, sep, tagName } = STYLES[style];
   const labels = run.map((sup) => {
     const href = sup.children[0].properties.href;
-    if (style === 'numeric') {
+    if (style === 'numeric' || style === 'superscript') {
       return { label: toText(sup), href };
     }
     const key = href.slice(FN_HREF_PREFIX.length);
@@ -102,9 +104,9 @@ function buildCitationNode(run, footnoteText, style) {
     return { label: text ? extractShortCite(text) : key, href };
   });
 
-  const children = [{ type: 'text', value: brackets.open }];
+  const children = open ? [{ type: 'text', value: open }] : [];
   labels.forEach((l, idx) => {
-    if (idx > 0) children.push({ type: 'text', value: brackets.sep });
+    if (idx > 0) children.push({ type: 'text', value: sep });
     children.push({
       type: 'element',
       tagName: 'a',
@@ -112,14 +114,15 @@ function buildCitationNode(run, footnoteText, style) {
       children: [{ type: 'text', value: l.label }],
     });
   });
-  children.push({ type: 'text', value: brackets.close });
+  if (close) children.push({ type: 'text', value: close });
 
-  return { type: 'element', tagName: 'span', properties: { className: ['citation-ref'] }, children };
+  return { type: 'element', tagName, properties: { className: ['citation-ref'] }, children };
 }
 
 export default function rehypeCitationStyle() {
   return (tree, file) => {
-    const style = file.data?.astro?.frontmatter?.citationStyle === 'numeric' ? 'numeric' : 'text';
+    const requested = file.data?.astro?.frontmatter?.citationStyle;
+    const style = Object.hasOwn(STYLES, requested) ? requested : 'text';
 
     const footnoteText = new Map();
     visit(tree, 'element', (node) => {
