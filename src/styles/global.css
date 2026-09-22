@@ -445,6 +445,39 @@ body::after {
   display: none;
 }
 
+/* hero: resource pills (models, code, paper) under the byline */
+.article-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.article-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 38px;
+  padding: 0 18px 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink);
+  font: 500 0.86rem/1 "Inter", system-ui, sans-serif;
+  text-decoration: none;
+}
+
+.article-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.article-link-icon {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
 /* hero: one pill per line, text inside the button */
 .hero-controls {
   margin-top: 26px;

@@ -41,19 +41,69 @@ import { visit } from 'unist-util-visit';
 // Splits "@type{key, field = {value}, ...}" entries. Values are a single
 // {...} run with no nested braces — every field in this site's .bib files is
 // plain text, so this stays a couple of regexes instead of a real parser.
+// LaTeX in field values → Unicode: accent commands ({\'\i}, {\v{c}}, \"o),
+// special letters (\ss, \o, \ae), \url{}, dash ligatures, and the grouping
+// braces themselves.
+const COMBINING = {
+  '`': '̀', "'": '́', '^': '̂', '"': '̈', '~': '̃',
+  '=': '̄', '.': '̇', v: '̌', c: '̧', u: '̆',
+  H: '̋', k: '̨', r: '̊', d: '̣', b: '̱',
+};
+const SPECIAL = { ss: 'ß', o: 'ø', O: 'Ø', ae: 'æ', AE: 'Æ', aa: 'å', AA: 'Å', l: 'ł', L: 'Ł', oe: 'œ', OE: 'Œ', i: 'i', j: 'j' };
+function decodeLatex(value) {
+  return value
+    .replace(/\\url\{([^}]*)\}/g, '$1')
+    // \'{\i} / \'\i / \'{e} / \'e → letter + combining mark
+    .replace(/\\([`'^"~=.vcuHkrdb])\s*\{?\\?([A-Za-z])\}?/g, (_, cmd, letter) => letter + COMBINING[cmd])
+    .replace(/\\([A-Za-z]+)(?![A-Za-z])/g, (m, cmd) => SPECIAL[cmd] ?? m)
+    .replace(/\\([&%$#_{}])/g, '$1')
+    .replace(/---/g, '—')
+    .replace(/--/g, '–')
+    .replace(/[{}]/g, '')
+    .normalize('NFC');
+}
+
+// Field values are brace-delimited and may nest ({\'\i}), so walk to the
+// matching brace instead of stopping at the first one. Quoted and bare
+// (numeric) values are accepted too.
+function parseFields(body) {
+  const fields = {};
+  const keyRe = /(\w+)\s*=\s*/g;
+  let m;
+  while ((m = keyRe.exec(body))) {
+    let i = m.index + m[0].length;
+    let value;
+    if (body[i] === '{') {
+      let depth = 0;
+      let j = i;
+      for (; j < body.length; j++) {
+        if (body[j] === '{') depth++;
+        else if (body[j] === '}' && --depth === 0) break;
+      }
+      value = body.slice(i + 1, j);
+      i = j + 1;
+    } else if (body[i] === '"') {
+      const j = body.indexOf('"', i + 1);
+      value = body.slice(i + 1, j < 0 ? body.length : j);
+      i = j < 0 ? body.length : j + 1;
+    } else {
+      const j = body.slice(i).search(/[,\n]/);
+      value = j < 0 ? body.slice(i) : body.slice(i, i + j);
+      i = j < 0 ? body.length : i + j;
+    }
+    fields[m[1].toLowerCase()] = decodeLatex(value.trim().replace(/\s+/g, ' '));
+    keyRe.lastIndex = i;
+  }
+  return fields;
+}
+
 function parseBibtex(source) {
   const entries = new Map();
   const entryRe = /@\w+\s*\{\s*([^,\s]+)\s*,([\s\S]*?)\n\}/g;
-  const fieldRe = /(\w+)\s*=\s*\{([^}]*)\}/g;
   let m;
   while ((m = entryRe.exec(source))) {
     const [, key, body] = m;
-    const fields = {};
-    let fm;
-    while ((fm = fieldRe.exec(body))) {
-      fields[fm[1].toLowerCase()] = fm[2].trim().replace(/\s+/g, ' ');
-    }
-    entries.set(key, fields);
+    entries.set(key, parseFields(body));
   }
   return entries;
 }
@@ -72,21 +122,36 @@ function splitName(raw) {
   return { last: words.pop(), first: words.join(' ') };
 }
 
+// Lists longer than this collapse to "First Author, et al." — the same
+// treatment BibTeX's "and others" gets below.
+const MAX_LISTED_AUTHORS = 10;
+
+// Every author is written in natural order ("Hynek Kydlíček"), so a name
+// only needs care when it has no given name ("NVIDIA") or is a comma-separated
+// corporate name ("Granite Team, IBM"), which is kept as written. BibTeX
+// protects these with {braces}, which the parser strips, so guess from shape.
+const GROUP_RE = /\b(team|ai|labs?|research|inc\.?|corp\.?|group)$/i;
+function displayName({ last, first, inverted }) {
+  if (!first) return last;
+  if (inverted && GROUP_RE.test(last)) return `${last}, ${first}`;
+  return `${first} ${last}`;
+}
+
 // "Last, First and Last2, First2 and others" — "others" as the final author
 // means et al., and matches how this post already elides long author lists
-// ("Ainslie, Joshua, et al.").
+// ("Joshua Ainslie, et al."). More than MAX_LISTED_AUTHORS names collapse the
+// same way.
 function formatAuthors(field) {
   if (!field) return '';
-  const parts = field.split(/\s+and\s+/);
-  const etAl = parts[parts.length - 1].trim().toLowerCase() === 'others';
-  const named = (etAl ? parts.slice(0, -1) : parts).map(splitName);
-  if (etAl || named.length === 1) {
-    const { last, first } = named[0];
-    return etAl ? `${last}, ${first}, et al.` : `${last}, ${first}.`;
-  }
-  const [first, ...rest] = named;
-  const restNames = rest.map((a) => `${a.first} ${a.last}`);
-  return `${first.last}, ${first.first}, ${restNames.slice(0, -1).map((n) => `${n}, `).join('')}and ${restNames[restNames.length - 1]}.`;
+  // arXiv exports of corporate papers include junk authors such as a lone ":"
+  const parts = field.split(/\s+and\s+/).filter((p) => /[\p{L}\d]/u.test(p));
+  if (parts.length === 0) return '';
+  const others = parts[parts.length - 1].trim().toLowerCase() === 'others';
+  const names = (others ? parts.slice(0, -1) : parts).map((raw) => displayName({ ...splitName(raw), inverted: raw.includes(',') }));
+  if (others || names.length > MAX_LISTED_AUTHORS) return `${names[0]}, et al.`;
+  if (names.length === 1) return `${names[0]}.`;
+  if (names.length === 2) return `${names[0]} and ${names[1]}.`;
+  return `${names.slice(0, -1).join(', ')}, and ${names[names.length - 1]}.`;
 }
 
 // Builds the inline mdast children for one citation — a "[title](url)" link
