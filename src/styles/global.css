@@ -1558,7 +1558,6 @@ figure {
 }
 
 .article-toc li.toc-h1 a {
-  padding-left: 0;
   font-size: 0.82rem;
   font-weight: 600;
   color: var(--ink);
