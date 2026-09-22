@@ -482,7 +482,8 @@ body::after {
 .article-abstract {
   max-width: 760px;
   margin: 34px auto 0;
-  text-align: left;
+  text-align: justify;
+  hyphens: auto;
 }
 
 .article-abstract-label {
@@ -510,14 +511,15 @@ body::after {
   font-size: 1.04em;
 }
 
-/* hero: one pill per line, text inside the button */
+/* hero: the three pills side by side, wrapping on narrow screens */
 .hero-controls {
-  margin-top: 26px;
+  margin-top: 18px;
 }
 
 .sky-controls--labelled {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
   gap: 10px;
 }

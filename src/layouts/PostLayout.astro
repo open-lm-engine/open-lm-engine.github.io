@@ -106,6 +106,12 @@ const titleAfterI = iIndex >= 0 ? title.slice(iIndex + 1) : '';
       {authors && authors.some((a) => a.equalAdvising) && (
         <p class="article-affiliations">* Equal advising</p>
       )}
+      {abstractHtml && (
+        <section class="article-abstract" aria-label="Abstract">
+          <h2 class="article-abstract-label">Abstract</h2>
+          <div class="article-abstract-body" set:html={abstractHtml} />
+        </section>
+      )}
       {links && links.length > 0 && (
         <nav class="article-links" aria-label="Resources">
           {links.map((l) => (
@@ -115,12 +121,6 @@ const titleAfterI = iIndex >= 0 ? title.slice(iIndex + 1) : '';
             </a>
           ))}
         </nav>
-      )}
-      {abstractHtml && (
-        <section class="article-abstract" aria-label="Abstract">
-          <h2 class="article-abstract-label">Abstract</h2>
-          <div class="article-abstract-body" set:html={abstractHtml} />
-        </section>
       )}
       {sky && (
         <div class="hero-controls">
