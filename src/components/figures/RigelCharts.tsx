@@ -341,7 +341,8 @@ export function colorsForKeys(keys: string[]): Record<string, string> {
       colors[k] = RIGEL_COLOR;
     } else {
       colors[k] = shades[k].light;
-      DARK[shades[k].light] = shades[k].dark;
+      // never overwrite an entry PlotChart (or hardwareSegments) already owns
+      DARK[shades[k].light] ??= shades[k].dark;
     }
   }
   return colors;

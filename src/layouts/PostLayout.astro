@@ -128,6 +128,7 @@ const titleAfterI = iIndex >= 0 ? title.slice(iIndex + 1) : '';
               {l.label}
             </a>
           ))}
+          <p class="article-links-fallback" hidden></p>
         </nav>
       )}
       {sky && (
@@ -143,6 +144,54 @@ const titleAfterI = iIndex >= 0 ? title.slice(iIndex + 1) : '';
   </div>
 
   <script>
+    // mailto: links do nothing in a browser with no registered mail handler.
+    // If the window is still focused a second after a click (a mail app or
+    // Gmail tab taking over would have blurred it), show the address with a
+    // copy action and a Gmail compose link instead.
+    (function () {
+      const note = document.querySelector<HTMLElement>('.article-links-fallback');
+      if (!note) return;
+      let timer = 0;
+      const cancel = () => window.clearTimeout(timer);
+      window.addEventListener('blur', cancel);
+      document.addEventListener('visibilitychange', cancel);
+      document.querySelectorAll<HTMLAnchorElement>('a.article-link[href^="mailto:"]').forEach((a) => {
+        a.addEventListener('click', () => {
+          const url = new URL(a.href);
+          const to = url.pathname;
+          const subject = url.searchParams.get('subject') ?? '';
+          cancel();
+          timer = window.setTimeout(() => {
+            if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
+            const gmail = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}`;
+            note.innerHTML = '';
+            note.append('No mail app opened? Write to ');
+            const addr = document.createElement('code');
+            addr.textContent = to;
+            note.append(addr, ' · ');
+            const copy = document.createElement('button');
+            copy.type = 'button';
+            copy.textContent = 'Copy address';
+            copy.addEventListener('click', async () => {
+              try {
+                await navigator.clipboard.writeText(to);
+                copy.textContent = 'Copied';
+              } catch {
+                copy.textContent = 'Select and copy above';
+              }
+            });
+            const g = document.createElement('a');
+            g.href = gmail;
+            g.target = '_blank';
+            g.rel = 'noopener noreferrer';
+            g.textContent = 'Open in Gmail';
+            note.append(copy, ' · ', g);
+            note.hidden = false;
+          }, 1200);
+        });
+      });
+    })();
+
     // Numbers every figure in document order (standalone figures get "N";
     // figures sharing a .figure-row get "Na"/"Nb"/"Nc") and injects the
     // number into each figcaption, then resolves every <FigRef> placeholder
