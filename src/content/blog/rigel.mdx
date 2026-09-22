@@ -84,7 +84,7 @@ The following principle guided this project from the start:
 
 Training across different hardware, whether from different vendors or from different generations of a single vendor, brought three challenges:
 <div class="callout">
-1. **Uneven kernel support.** Kernels that are well optimized for one chip may exist but not for another. This limited the architectures we could consider.
+1. **Uneven kernel support.** Kernels that are well optimized for one chip may exist but not for another. This limits how fast we can run our experiments.
 2. **Architecture followed kernel availability.** We wrote our own MoE kernels for V100s, but implementing Gated DeltaNet (GDN)[^gdn] on V100s and TPUs looked like a much bigger undertaking, so we adopted Mamba-2[^mamba2], which was far simpler to implement. We hope to implement GDN for our future training runs.
 3. **Numerics differ across hardware.** V100s support FP16 but not BF16. This did not hurt our current model, but it could affect a larger training run.
 </div>
@@ -210,7 +210,6 @@ This was also a good exercise for us to write Pallas kernels for TPUs for Mamba-
 
 We used mixed-precision training[^mixed-precision] in BF16[^bf16] for {MODEL_NAME} on A100, H100 and TPU with any all-reduce and reduce-scatter operations in FP32 precision with the exception of V100 GPUs.
 V100s don't support the BF16 precision format and hence we used FP16 with loss scaling to avoid small gradients becoming zeros.
-We also used FP16 reduce-scatter on V100s rather than FP32 for slightly more training throughput.
 
 Our models were trained purely with DDP[^ddp] on H100s and A100s with 80GB memory and HSDP-2 on V100s 32GBs and A100 40GBs.
 We used purely FSDP (Fully Sharded Data Parallel)[^zero][^fsdp] on TPUs since we were not able to get HSDP (Hybrid Sharded Data Parallel) working with torch-xla on TPUs 🥲.
