@@ -393,7 +393,7 @@ function buildAccuracySpec(models: ModelEntry[]): ChartSpec {
   const tasks = [...rows.map((r) => r.task), 'average'];
   const metrics = [...rows.map((r) => r.metric), 'mean' as const];
   return {
-    height: 460,
+    height: 560,
     glow: 'trace',
     // Rigel's bars are solid, outlined in ink and labelled in bold accent;
     // the baselines sit back at partial opacity with muted labels, so the
