@@ -277,6 +277,7 @@ function harnessMetric(json: HarnessResults, task: string, metric: 'acc' | 'acc_
 const NAME_OVERRIDE: Record<string, string> = {
   'rigel-base-long': 'Rigel-long-base',
   'smollm-3-3b': 'SmolLM3-3B',
+  'smollm-3-3b-base': 'SmolLM3-3B-Base',
 };
 
 export function deriveModelName(key: string): string {
