@@ -12,14 +12,42 @@ interface Props {
   // suffix, an absolute image URL, and the page type
   ogTitle?: string;
   image?: string;
+  imageWidth?: number | string;
+  imageHeight?: number | string;
+  imageAlt?: string;
   imageCard?: 'summary' | 'summary_large_image';
   type?: 'website' | 'article';
   // the starfield (canvas + its controls) only ever renders on posts that opt in
   sky?: boolean;
 }
 
-const { title, description, ogTitle, image, imageCard = 'summary', type = 'website', sky = false } = Astro.props;
+const { title, description, ogTitle, image, imageWidth, imageHeight, imageAlt, imageCard = 'summary', type = 'website', sky = false } = Astro.props;
 const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : undefined;
+
+// Social-preview tags are emitted as a pre-escaped string: Astro leaves a raw
+// "<" inside attribute values (valid HTML), but lenient unfurlers such as
+// Slack's stop reading the title at it — "…Quality with <1%…" was cut short.
+const esc = (v: string | number) =>
+  String(v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const meta = (attr: 'property' | 'name', key: string, value?: string | number) =>
+  value == null || value === '' ? '' : `<meta ${attr}="${key}" content="${esc(value)}">`;
+const socialTitle = ogTitle ?? title;
+const socialMeta = [
+  meta('property', 'og:type', type),
+  meta('property', 'og:site_name', site.brand),
+  meta('property', 'og:title', socialTitle),
+  meta('property', 'og:description', description),
+  meta('property', 'og:url', canonical),
+  meta('property', 'og:image', image),
+  meta('property', 'og:image:width', image ? imageWidth : undefined),
+  meta('property', 'og:image:height', image ? imageHeight : undefined),
+  meta('property', 'og:image:alt', image ? imageAlt : undefined),
+  meta('name', 'twitter:card', image ? imageCard : 'summary'),
+  meta('name', 'twitter:title', socialTitle),
+  meta('name', 'twitter:description', description),
+  meta('name', 'twitter:image', image),
+  meta('name', 'twitter:image:alt', image ? imageAlt : undefined),
+].join('\n    ');
 ---
 
 <!doctype html>
@@ -30,16 +58,7 @@ const canonical = Astro.site ? new URL(Astro.url.pathname, Astro.site).href : un
     <title>{title}</title>
     {description && <meta name="description" content={description} />}
     {canonical && <link rel="canonical" href={canonical} />}
-    <meta property="og:type" content={type} />
-    <meta property="og:site_name" content={site.brand} />
-    <meta property="og:title" content={ogTitle ?? title} />
-    {description && <meta property="og:description" content={description} />}
-    {canonical && <meta property="og:url" content={canonical} />}
-    {image && <meta property="og:image" content={image} />}
-    <meta name="twitter:card" content={image ? imageCard : 'summary'} />
-    <meta name="twitter:title" content={ogTitle ?? title} />
-    {description && <meta name="twitter:description" content={description} />}
-    {image && <meta name="twitter:image" content={image} />}
+    <Fragment set:html={socialMeta} />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
