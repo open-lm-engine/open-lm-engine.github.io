@@ -59,12 +59,18 @@ function extractShortCite(citationText) {
   }
   authorsSeg = authorsSeg.trim().replace(/[.,]$/, '');
 
+  // corporate authors ("Kimi Team", "DeepSeek-AI") have no surname to pull out
+  const GROUP_RE = /\b(team|ai|labs?|research|group)$/i;
   const etAlMatch = authorsSeg.match(/^(.*?)\s*,?\s*et al\.?$/i);
   if (etAlMatch) {
-    const before = etAlMatch[1];
+    const before = etAlMatch[1].trim();
     const commaIdx = before.indexOf(',');
-    const surname = commaIdx !== -1 ? before.slice(0, commaIdx).trim() : before.trim().split(/\s+/).pop();
+    const surname = commaIdx !== -1 ? before.slice(0, commaIdx).trim() : GROUP_RE.test(before) ? before : before.split(/\s+/).pop();
     return year ? `${surname} et al., ${year}` : `${surname} et al.`;
+  }
+  // "Granite Team, IBM": one corporate author written with a comma, kept whole
+  if (GROUP_RE.test(authorsSeg.split(',')[0]) && authorsSeg.split(',').length === 2 && !/\s+and\s+/.test(authorsSeg)) {
+    return year ? `${authorsSeg}, ${year}` : authorsSeg;
   }
 
   // Authors arrive in natural order ("Tri Dao and Albert Gu", "A, B, and C")
@@ -77,7 +83,7 @@ function extractShortCite(citationText) {
   const firstUnit = parts[0];
   const firstIsInverted = firstUnit.split(/\s+/).length === 1;
   // corporate first authors ("Granite Team", "Kimi Team") keep their whole name
-  const firstSurname = firstIsInverted || /\b(team|ai|labs?|research|group)$/i.test(firstUnit) ? firstUnit : firstUnit.split(/\s+/).pop();
+  const firstSurname = firstIsInverted || GROUP_RE.test(firstUnit) ? firstUnit : firstUnit.split(/\s+/).pop();
   const rest = firstIsInverted ? parts.slice(2) : parts.slice(1);
 
   if (rest.length === 0) {
@@ -137,8 +143,11 @@ export default function rehypeCitationStyle() {
     });
     if (footnoteText.size === 0) return;
 
-    visit(tree, 'element', (node) => {
-      if (!node.children || node.children.length === 0) return;
+    // footnote refs also sit inside MDX component slots (figure captions,
+    // sidenotes), whose parents are JSX nodes rather than HTML elements
+    const PARENTS = new Set(['element', 'mdxJsxFlowElement', 'mdxJsxTextElement']);
+    visit(tree, (node) => {
+      if (!PARENTS.has(node.type) || !node.children || node.children.length === 0) return;
       const kids = node.children;
       let changed = false;
       const out = [];
