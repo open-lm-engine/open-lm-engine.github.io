@@ -35,6 +35,8 @@ interface Props {
   headings: Heading[];
   codeColor?: 'pink' | 'green';
   heroImage?: ImageMetadata;
+  // wide image for social-link previews; the hero image is used when absent
+  banner?: ImageMetadata;
   // opts this post into the starfield background and its controls
   sky?: boolean;
   // external resources shown as pills under the byline
@@ -44,15 +46,19 @@ interface Props {
   abstract?: string;
 }
 
-const { title, subtitle, description, author, authors, affiliations, headings, codeColor, heroImage, sky = false, links, abstract } = Astro.props;
+const { title, subtitle, description, author, authors, affiliations, headings, codeColor, heroImage, banner, sky = false, links, abstract } = Astro.props;
 // 'green' is the site default (--code-accent already resolves to it); 'pink' points
 // --code-accent at the original --accent pink instead, which is itself theme-aware.
 const codeAccentStyle = codeColor === 'pink' ? '--code-accent: var(--accent);' : undefined;
 const abstractHtml = abstract ? await renderMarkdown(abstract) : undefined;
-// social preview: the hero image at a share-friendly size, as an absolute URL
-const ogImage = heroImage ? await getImage({ src: heroImage, width: 1200, format: 'png' }) : undefined;
+// social preview: the hero image at a share-friendly size, as an absolute
+// URL. JPEG rather than PNG: the 1254px RGBA hero is 2.6 MB as PNG, past what
+// some unfurlers (Slack among them) will fetch; as JPEG it's a few hundred KB.
+// The transparent background flattens to black, which suits the dark site.
+const ogSource = banner ?? heroImage;
+const ogImage = ogSource ? await getImage({ src: ogSource, width: 1200, format: 'jpg', quality: 82 }) : undefined;
 const ogImageUrl = ogImage && Astro.site ? new URL(ogImage.src, Astro.site).href : undefined;
-const ogCard = heroImage && heroImage.width / heroImage.height >= 1.5 ? 'summary_large_image' : 'summary';
+const ogCard = ogSource && ogSource.width / ogSource.height >= 1.5 ? 'summary_large_image' : 'summary';
 
 // When a post carries a heroImage, dot the title's first lowercase "i" with it
 // instead of the glyph's own dot: swap in dotless-i (U+0131, "ı") for the stem
@@ -62,7 +68,7 @@ const titleBeforeI = iIndex >= 0 ? title.slice(0, iIndex) : title;
 const titleAfterI = iIndex >= 0 ? title.slice(iIndex + 1) : '';
 ---
 
-<BaseLayout title={`${title} | blog`} ogTitle={title} description={description} image={ogImageUrl} imageCard={ogCard} type="article" sky={sky}>
+<BaseLayout title={`${title} | blog`} ogTitle={title} description={description} image={ogImageUrl} imageWidth={ogImage?.attributes.width} imageHeight={ogImage?.attributes.height} imageAlt={`${title} — cover image`} imageCard={ogCard} type="article" sky={sky}>
   <div class="article-shell">
     <TableOfContents headings={headings} />
 
