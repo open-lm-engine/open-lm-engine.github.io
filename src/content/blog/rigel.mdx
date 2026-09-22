@@ -253,11 +253,7 @@ And unlike attention's triangular compute imbalance, per-token SSD compute is ch
 We pretrain {MODEL_NAME} with 4,096 context length with a batch size of 1,152 sequences per training step (an effective global batch size of 4.7M tokens). We keep the token count per batch constant during the entire course of training. During the long-context extension phase, we adjusted the batch size to 16 sequences with 294,912 tokens each.
 
 We used $\mu$P[^mup] for hyper-parameter transfer across model widths.
-While we wanted to use the Hyperball optimizer[^hyperball] for training our models, we didn't have the compute budget to answer questions like:
-1. should we split the attention heads for hyperball?
-2. should we split the gate and up projection matrices for hyperball?
-3. should we treat each expert independently for hyperball?
-
+While we wanted to use the Hyperball optimizer[^hyperball] for training our models, we didn't have the compute budget to carefully ablate it with hybrid Mamba-2[^mamba2] layers.
 While we believe the [Marin project](https://marin.community/) recipes have ablated this at scale, we didn't want to risk our training run since we haven't tested these on our training stack yet.
 
 <Figure id="fig-lm-loss">
