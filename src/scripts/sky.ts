@@ -229,10 +229,12 @@ if (canvas) {
   }
 
   const NEBULA_PALETTES: [string, string][] = [
-    ['60,140,170', '120,90,200'],   // teal into violet
-    ['190,70,140', '90,60,180'],    // magenta into indigo
-    ['200,120,70', '150,60,90'],    // amber into rose
-    ['70,110,200', '150,120,220'],  // blue into lavender
+    ['225,95,170', '130,70,210'],   // pink into violet
+    ['205,80,150', '100,60,190'],   // magenta into indigo
+    ['235,120,180', '170,90,220'],  // rose into orchid
+    ['180,80,200', '120,60,180'],   // purple into deep violet
+    ['90,210,150', '50,150,140'],   // mint into teal
+    ['120,220,120', '140,80,210'],  // green into violet
   ];
 
   // a diffuse cloud: a dozen soft blobs in two colours, a few knots of stars
@@ -243,7 +245,7 @@ if (canvas) {
     const { c, g } = spriteCanvas(size);
     const [c1, c2] = NEBULA_PALETTES[Math.floor(Math.random() * NEBULA_PALETTES.length)];
     g.globalCompositeOperation = 'lighter';
-    const blobs = 12;
+    const blobs = 14;
     for (let i = 0; i < blobs; i++) {
       const ang = rand(0, TAU);
       const d = rand(0, size * 0.22);
@@ -251,10 +253,10 @@ if (canvas) {
       const y = Math.sin(ang) * d * rand(0.5, 1);
       const r = rand(size * 0.16, size * 0.34);
       const col = Math.random() < 0.55 ? c1 : c2;
-      const a = rand(0.05, 0.11);
+      const a = rand(0.07, 0.14);
       const grad = g.createRadialGradient(x, y, 0, x, y, r);
       grad.addColorStop(0, `rgba(${col},${a.toFixed(3)})`);
-      grad.addColorStop(0.5, `rgba(${col},${(a * 0.45).toFixed(3)})`);
+      grad.addColorStop(0.5, `rgba(${col},${(a * 0.55).toFixed(3)})`);
       grad.addColorStop(1, `rgba(${col},0)`);
       g.fillStyle = grad;
       g.beginPath();
@@ -268,7 +270,7 @@ if (canvas) {
       const y = rand(-size * 0.2, size * 0.2);
       const r = rand(size * 0.08, size * 0.18);
       const grad = g.createRadialGradient(x, y, 0, x, y, r);
-      grad.addColorStop(0, 'rgba(0,0,0,0.5)');
+      grad.addColorStop(0, 'rgba(0,0,0,0.4)');
       grad.addColorStop(1, 'rgba(0,0,0,0)');
       g.fillStyle = grad;
       g.beginPath();
@@ -362,7 +364,7 @@ if (canvas) {
         w: size,
         h: size,
         rate: rand(0.015, 0.025),
-        alpha: rand(0.55, 0.8),
+        alpha: rand(0.6, 0.8),
         side,
       });
     }
@@ -466,8 +468,8 @@ if (canvas) {
   const anchorY = (D: number, f: number) => H * 0.5 + (D - scrollY) * f;
 
   // Stars are batched: one fillStyle per (tint, quantised alpha) bucket and a
-  // fillRect per star (at 1–3px a square is indistinguishable from a disc),
-  // instead of a path + gradient string per star per frame.
+  // single path of arcs per bucket, instead of a path + gradient string per
+  // star per frame.
   const starBuckets = new Map<string, number[]>();
   function drawStars(time: number) {
     const span = H + 600;
@@ -483,12 +485,17 @@ if (canvas) {
       const key = `rgba(${s.tint},${q})`;
       let b = starBuckets.get(key);
       if (!b) starBuckets.set(key, (b = []));
-      b.push(s.x - s.r, y - s.r, s.r * 2);
+      b.push(s.x, y, s.r);
     }
     for (const [style, b] of starBuckets) {
       if (!b.length) continue;
       ctx.fillStyle = style;
-      for (let i = 0; i < b.length; i += 3) ctx.fillRect(b[i], b[i + 1], b[i + 2], b[i + 2]);
+      ctx.beginPath();
+      for (let i = 0; i < b.length; i += 3) {
+        ctx.moveTo(b[i] + b[i + 2], b[i + 1]);
+        ctx.arc(b[i], b[i + 1], b[i + 2], 0, TAU);
+      }
+      ctx.fill();
     }
   }
 
