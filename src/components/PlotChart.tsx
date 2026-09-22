@@ -13,9 +13,9 @@ export type ChartSpec = {
   traces: Trace[];
   layout: Record<string, any>;
   height?: number;
-  // neon glow (CSS drop-shadow, see .plot-chart[data-glow] in global.css) on
-  // the leading series: 'trace' lights every bar of the first trace, 'point'
-  // only the first bar of the first trace. Colour follows that series' marker.
+  // neon glow (CSS drop-shadow, see .plot-chart .glow in global.css) on the
+  // leading series: 'trace' lights every bar of the first trace, 'point' only
+  // the first bar of the first trace. Colour follows that series' marker.
   glow?: 'trace' | 'point';
 };
 
@@ -405,11 +405,25 @@ export default function PlotChart({ spec, height, sweep }: { spec: ChartSpec; he
         xaxis: { ...axis, ...(sxaxis ?? {}), gridcolor: grid, zerolinecolor: line, tickfont: { size: 11, color: muted } },
         yaxis: { ...axis, ...(syaxis ?? {}), gridcolor: grid, zerolinecolor: line, tickfont: { size: 11, color: muted } },
       };
-      if (spec.glow && traces.length) {
-        const c = traces[0].marker?.color;
-        target.dataset.glow = spec.glow;
-        target.style.setProperty('--glow', Array.isArray(c) ? c[0] : c ?? 'currentColor');
-      }
+      // Glow: tag the leading trace (or its first bar) by the data plotly binds
+      // to each group — DOM order isn't guaranteed to follow trace order — and
+      // re-tag after every redraw (resize, theme flip), since plotly may
+      // recreate the groups.
+      const applyGlow = () => {
+        if (!spec.glow) return;
+        const c = traces[0]?.marker?.color;
+        target.style.setProperty('--glow', (Array.isArray(c) ? c[0] : c) ?? 'currentColor');
+        for (const g of Array.from(target.querySelectorAll<SVGGElement>('.barlayer .trace'))) {
+          const d = (g as any).__data__;
+          const lead = d?.[0]?.trace?.index === 0;
+          g.classList.toggle('glow', lead && spec.glow === 'trace');
+          const points = Array.from(g.querySelectorAll<SVGGElement>('.point'));
+          for (const p of points) {
+            const first = ((p as any).__data__?.i ?? points.indexOf(p)) === 0;
+            p.classList.toggle('glow', lead && spec.glow === 'point' && first);
+          }
+        }
+      };
       try {
         const drawn = Plotly.react(target, traces, layout, {
           responsive: true,
@@ -418,6 +432,11 @@ export default function PlotChart({ spec, height, sweep }: { spec: ChartSpec; he
           doubleClick: false,
           scrollZoom: false,
         });
+        if (spec.glow) {
+          target.removeAllListeners?.('plotly_afterplot');
+          target.on('plotly_afterplot', applyGlow);
+          Promise.resolve(drawn).then(() => alive && applyGlow());
+        }
         const isPieChart = traces.some((t: Trace) => t.type === 'pie');
         const isBarChart = traces.some((t: Trace) => t.type === 'bar');
         if (sweep && !swept.current && (isPieChart || isBarChart) && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
