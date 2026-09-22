@@ -478,6 +478,38 @@ body::after {
   line-height: 1;
 }
 
+/* hero: paper-style abstract, a left-aligned column inside the centred hero */
+.article-abstract {
+  max-width: 760px;
+  margin: 34px auto 0;
+  text-align: left;
+}
+
+.article-abstract-label {
+  margin: 0 0 10px;
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.article-abstract p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.article-abstract p + p {
+  margin-top: 0.8em;
+}
+
+.article-abstract .katex {
+  font-size: 1.04em;
+}
+
 /* hero: one pill per line, text inside the button */
 .hero-controls {
   margin-top: 26px;

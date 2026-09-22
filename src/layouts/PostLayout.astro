@@ -4,6 +4,7 @@ import type { ImageMetadata } from 'astro';
 import BaseLayout from './BaseLayout.astro';
 import TableOfContents from '../components/TableOfContents.astro';
 import SkyControls from '../components/SkyControls.astro';
+import { renderMarkdown } from '../lib/markdown';
 
 interface Heading {
   depth: number;
@@ -40,12 +41,16 @@ interface Props {
   skyPrompt?: string;
   // external resources shown as pills under the byline
   links?: ResourceLink[];
+  // paper-style abstract shown in the hero under the byline; Markdown with
+  // $...$ math, rendered through the same remark-math + KaTeX pipeline as the body
+  abstract?: string;
 }
 
-const { title, subtitle, description, author, authors, affiliations, headings, codeColor, heroImage, sky = false, skyPrompt, links } = Astro.props;
+const { title, subtitle, description, author, authors, affiliations, headings, codeColor, heroImage, sky = false, skyPrompt, links, abstract } = Astro.props;
 // 'green' is the site default (--code-accent already resolves to it); 'pink' points
 // --code-accent at the original --accent pink instead, which is itself theme-aware.
 const codeAccentStyle = codeColor === 'pink' ? '--code-accent: var(--accent);' : undefined;
+const abstractHtml = abstract ? await renderMarkdown(abstract) : undefined;
 
 // When a post carries a heroImage, dot the title's first lowercase "i" with it
 // instead of the glyph's own dot: swap in dotless-i (U+0131, "ı") for the stem
@@ -110,6 +115,12 @@ const titleAfterI = iIndex >= 0 ? title.slice(iIndex + 1) : '';
             </a>
           ))}
         </nav>
+      )}
+      {abstractHtml && (
+        <section class="article-abstract" aria-label="Abstract">
+          <h2 class="article-abstract-label">Abstract</h2>
+          <div class="article-abstract-body" set:html={abstractHtml} />
+        </section>
       )}
       {sky && (
         <div class="hero-controls">
