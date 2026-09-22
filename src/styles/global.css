@@ -478,6 +478,34 @@ body::after {
   line-height: 1;
 }
 
+/* shown only when a mailto: click didn't hand off to a mail app */
+.article-links-fallback {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.article-links-fallback code {
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.article-links-fallback button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.article-links-fallback a {
+  color: var(--accent);
+}
+
 /* hero: paper-style abstract, a left-aligned column inside the centred hero */
 .article-abstract {
   max-width: 760px;

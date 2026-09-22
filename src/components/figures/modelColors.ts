@@ -8,10 +8,13 @@
 export type ColorPair = { light: string; dark: string };
 
 // family → [light-mode hue, dark-mode hue]; families not listed here take
-// the EXTRA hues in first-seen order
+// the EXTRA hues in first-seen order. The dark twins must equal PlotChart's
+// DARK entries for these light hexes: hardwareSegments.ts derives its own
+// shades from the same map at module load, and a different value here would
+// make server and client disagree depending on which module ran first.
 const FAMILY_HUES: Record<string, ColorPair> = {
-  llama: { light: '#eb6834', dark: '#f0883e' },
-  smollm: { light: '#1baf7a', dark: '#3fb950' },
+  llama: { light: '#eb6834', dark: '#d95926' },
+  smollm: { light: '#1baf7a', dark: '#199e70' },
   granite: { light: '#7d5ba6', dark: '#b48be0' },
   qwen: { light: '#b98a2e', dark: '#e3b341' },
   gemma: { light: '#176b64', dark: '#4fb3a7' },
