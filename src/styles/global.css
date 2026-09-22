@@ -829,12 +829,13 @@ figure {
 
 /* section numbering: h1-h3 auto-number in document order (h4+ stays
    unnumbered), skipping the rehype-generated "References"/footnotes
-   heading (id="footnote-label") */
+   heading (id="footnote-label") and the closing "Citation" section, which
+   are back matter rather than chapters (TableOfContents.astro mirrors both) */
 .article-content {
   counter-reset: h1num h2num h3num;
 }
 
-.article-content h1 {
+.article-content h1:not(#citation) {
   counter-increment: h1num;
   counter-reset: h2num h3num;
 }
@@ -848,7 +849,7 @@ figure {
   counter-increment: h3num;
 }
 
-.article-content h1::before {
+.article-content h1:not(#citation)::before {
   content: counter(h1num) " ";
 }
 
