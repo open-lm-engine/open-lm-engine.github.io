@@ -23,7 +23,7 @@ const ONE_SHOT_MODULES = import.meta.glob<{ default: HarnessResults }>('../../..
 const FIVE_SHOT_MODULES = import.meta.glob<{ default: HarnessResults }>('../../../results/5-shot/*.json', { eager: true });
 
 type Category =
-  | 'General web & reference'
+  | 'General web'
   | 'Code'
   | 'Math'
   | 'Multilingual'
@@ -38,7 +38,7 @@ const LINE_LIGHT = '#fffdf8';
 
 // Fixed order = fixed angular position = fixed color, across every tile.
 const CATEGORY_ORDER: Category[] = [
-  'General web & reference',
+  'General web',
   'Code',
   'Math',
   'Multilingual',
@@ -50,7 +50,7 @@ const CATEGORY_ORDER: Category[] = [
 ];
 
 const CATEGORY_COLOR: Record<Category, string> = {
-  'General web & reference': '#2a78d6',
+  'General web': '#2a78d6',
   Code: '#eb6834',
   Math: '#1baf7a',
   Multilingual: '#eda100',
@@ -68,25 +68,25 @@ const PHASES: Phase[] = [
     key: 'h1',
     title: 'Phase 1',
     note: 'the original base-training mix',
-    shares: { 'General web & reference': 71.0, Code: 20.0, Math: 7.0, Multilingual: 2.0 },
+    shares: { 'General web': 71.0, Code: 20.0, Math: 7.0, Multilingual: 2.0 },
   },
   {
     key: 'h2',
     title: 'Phase 2',
     note: 'web swapped for STEM-heavy data',
-    shares: { 'General web & reference': 15.0, Code: 20.0, Math: 7.0, Multilingual: 2.0, 'STEM / specialized reasoning': 56.0 },
+    shares: { 'General web': 15.0, Code: 20.0, Math: 7.0, Multilingual: 2.0, 'STEM / specialized reasoning': 56.0 },
   },
   {
     key: 'h3',
     title: 'Phase 3',
     note: 'web source swapped again, math share grows',
-    shares: { 'General web & reference': 57.0, Code: 18.0, Math: 19.0, Multilingual: 6.0 },
+    shares: { 'General web': 57.0, Code: 18.0, Math: 19.0, Multilingual: 6.0 },
   },
   {
     key: 'h4',
     title: 'Phase 4',
     note: 'Nemotron-CC-v2 introduced; math/code balloon to 35% each',
-    shares: { 'General web & reference': 2.2, Code: 35.0, Math: 35.0, Multilingual: 3.5, 'Nemotron-CC-v2': 20.0, FinePDF: 4.3 },
+    shares: { 'General web': 2.2, Code: 35.0, Math: 35.0, Multilingual: 3.5, 'Nemotron-CC-v2': 20.0, FinePDF: 4.3 },
   },
   {
     key: 'h5',
@@ -133,7 +133,7 @@ function phaseSpec(phase: Phase): ChartSpec {
 
 const legendCss = `
 .rigel-curriculum {
-  --cat-web:      ${CATEGORY_COLOR['General web & reference']};
+  --cat-web:      ${CATEGORY_COLOR['General web']};
   --cat-code:     ${CATEGORY_COLOR['Code']};
   --cat-math:     ${CATEGORY_COLOR['Math']};
   --cat-multi:    ${CATEGORY_COLOR['Multilingual']};
@@ -212,7 +212,7 @@ const legendCss = `
 `;
 
 const LEGEND_ITEMS: { label: Category; varName: string }[] = [
-  { label: 'General web & reference', varName: '--cat-web' },
+  { label: 'General web', varName: '--cat-web' },
   { label: 'Code', varName: '--cat-code' },
   { label: 'Math', varName: '--cat-math' },
   { label: 'Multilingual', varName: '--cat-multi' },
