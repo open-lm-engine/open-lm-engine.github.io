@@ -47,8 +47,8 @@
 \draw[arr] (lnorm2) -- (lmlp);
 \draw[arr] (lmlp) -- (ladd2);
 
-% input arrow (bottom of the whole stack)
-\draw[arr] ($(lnorm1.south)+(0,-7mm)$) -- (lnorm1);
+% input arrow (bottom of the whole stack); ×3 marks the repeat count of the Mamba-2 layer
+\draw[arr] ($(lnorm1.south)+(0,-7mm)$) -- (lnorm1) node[lab, text=opsym, pos=0.5, right=2.2mm] {$\times 3$};
 
 % layer-1 residuals
 \coordinate (lr1) at ($(lnorm1.south)+(0,-3.5mm)$);
@@ -56,7 +56,7 @@
 \draw (lr1) -- ++(-12mm,0) |- (ladd1.west);
 \draw (lr2) -- ++(-12mm,0) |- (ladd2.west);
 
-% --- layer 2: Attention (stacked directly above; ×3 marks the repeat count) ---
+% --- layer 2: Attention (stacked directly above) ---
 \node[norm, above=3mm of ladd2] (lnorm1b) {RMSNorm};
 \node[method, above=3mm of lnorm1b] (lattn) {Attention};
 \node[op, above=3mm of lattn] (ladd1b) {+};
@@ -64,7 +64,7 @@
 \node[method, above=3mm of lnorm2b] (lmlpb) {MoE};
 \node[op, above=3mm of lmlpb] (ladd2b) {+};
 
-\draw[arr] (ladd2) -- (lnorm1b) node[lab, text=opsym, pos=0.5, right=2.2mm] {$\times 3$};
+\draw[arr] (ladd2) -- (lnorm1b);
 \draw[arr] (lnorm1b) -- (lattn);
 \draw[arr] (lattn) -- (ladd1b);
 \draw[arr] (ladd1b) -- (lnorm2b);
