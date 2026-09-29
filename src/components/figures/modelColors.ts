@@ -26,7 +26,7 @@ const EXTRA_HUES: ColorPair[] = [
   { light: '#176b64', dark: '#4fb3a7' },
 ];
 
-const LIGHT_PAPER = '#fffdf8';
+const LIGHT_PAPER = '#ffffff';
 const DARK_PAPER = '#1c1a16';
 
 export const familyOf = (key: string) => (key.match(/^[a-z]+/i) ?? [key])[0].toLowerCase();

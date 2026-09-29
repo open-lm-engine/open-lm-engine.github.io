@@ -34,7 +34,7 @@ type Category =
   | 'Other';
 
 const GRAY = '#6d6860'; // site muted-ink token — PlotChart's DARK map lightens it to #9d968a
-const LINE_LIGHT = '#fffdf8';
+const LINE_LIGHT = '#ffffff';
 
 // Fixed order = fixed angular position = fixed color, across every tile.
 const CATEGORY_ORDER: Category[] = [

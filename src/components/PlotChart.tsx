@@ -251,7 +251,7 @@ export default function PlotChart({ spec, height, sweep }: { spec: ChartSpec; he
   const [dots, setDots] = useState<{ x: number; y: number; color: string }[]>([]);
   const swept = useRef(false);
   const cancelSweep = useRef<() => void>(() => {});
-  const theme = useRef({ ink: '#161513', muted: '#6d6860', line: '#d8d0c4', paper: '#fffdf8' });
+  const theme = useRef({ ink: '#161513', muted: '#6d6860', line: '#d8d0c4', paper: '#ffffff' });
   const lastPointer = useRef({ x: 0, y: 0 });
   // restyle() is async and redraws the plot; firing one on every hover event
   // (a tiny slice can fire several in quick succession as the pointer
@@ -287,7 +287,7 @@ export default function PlotChart({ spec, height, sweep }: { spec: ChartSpec; he
       const ink = v('--ink', dk ? '#ece7db' : '#161513');
       const muted = v('--muted', dk ? '#9d968a' : '#6d6860');
       const line = v('--line', dk ? '#38342c' : '#d8d0c4');
-      const paper = v('--paper', dk ? '#1c1a16' : '#fffdf8');
+      const paper = v('--paper', dk ? '#1c1a16' : '#ffffff');
       theme.current = { ink, muted, line, paper };
 
       // plotly's cleanData throws on null object values ("name": null,

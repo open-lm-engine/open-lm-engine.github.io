@@ -1,8 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Inter:wght@400;500;600;700&display=swap");
 
 :root {
-  --bg: #f9f6ef;
-  --paper: #fffdf8;
+  --bg: #ffffff;
+  --paper: #ffffff;
   --ink: #161513;
   --muted: #6d6860;
   --line: #d8d0c4;
@@ -14,7 +14,7 @@
   --citation-strong: #2f6fae;
   --code-accent: #2f8f4e;
   --shadow: 0 22px 60px rgba(32, 28, 20, 0.08);
-  --body-wash: linear-gradient(180deg, rgba(255, 253, 248, 0.82), rgba(251, 248, 242, 0.98));
+  --body-wash: linear-gradient(180deg, #ffffff, #ffffff);
   --th-bg: #eee8de;
   color-scheme: light;
 }
